@@ -83,6 +83,26 @@ ipcMain.handle('get-png-data', async (_event: Electron.IpcMainInvokeEvent, image
   }
 });
 
+ipcMain.handle('save-annotations-data', async (_event, filePath: string, jsonData: string) => {
+  try {
+    await fs.writeFile(filePath, jsonData, 'utf-8');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error saving annotations:', error);
+    return { success: false, error: error };
+  }
+});
+
+ipcMain.handle('get-annotations-data', async (_event, filePath: string) => {
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    return content;
+  } catch (error) {
+    console.error('Error reading annotations file:', error);
+    return null;
+  }
+});
+
 app.whenReady().then(createWindow).catch(console.error);
 
 app.on('window-all-closed', () => {

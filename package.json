@@ -15,6 +15,7 @@
     "postinstall": "quasar prepare"
   },
   "dependencies": {
+    "2d-geometry": "^3.0.0",
     "@quasar/extras": "^1.16.4",
     "@vueuse/core": "^12.5.0",
     "konva": "^9.3.18",

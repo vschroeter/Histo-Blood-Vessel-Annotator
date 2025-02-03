@@ -1,23 +1,26 @@
 <template>
-  <div class="q-pa-md">
-    <!-- Quasar Folder Input bound to persistent store -->
-    <q-input dense v-model="store.folderPath" filled placeholder="Enter folder path" class="q-mb-sm" />
-    <q-btn dense label="Load Files" @click="loadFiles" class="q-mb-md" />
-    <!-- Quasar Dense List for Files -->
-    <q-list dense bordered class="bg-white">
-      <template v-for="file in files" :key="file">
-        <q-item clickable @click="selectFile(file)" class="q-pa-xs" :active="isSelected(file)">
-          <q-item-section>{{ file }}</q-item-section>
-        </q-item>
-        <!-- <q-separator v-if="index < files.length - 1" inset /> -->
-      </template>
-    </q-list>
+  <div class="q-pa-md explorer-container">
+    <!-- Input and button section -->
+    <div class="header-section">
+      <q-input dense v-model="store.folderPath" filled placeholder="Enter folder path" class="q-mb-sm" />
+      <q-btn dense label="Load Files" @click="loadFiles" class="q-mb-md" />
+    </div>
+    <!-- Scrollable list section -->
+    <div class="list-container">
+      <q-list dense bordered class="bg-white">
+        <template v-for="file in files" :key="file">
+          <q-item clickable @click="selectFile(file)" class="q-pa-xs" :active="isSelected(file)">
+            <q-item-section>{{ file }}</q-item-section>
+          </q-item>
+        </template>
+      </q-list>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useGlobalStore } from 'src/stores/globa-store';
+import { useGlobalStore } from 'src/stores/global-store';
 
 const store = useGlobalStore();
 const files = ref<string[]>([]);
@@ -51,7 +54,21 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Additional styling for improved look */
+.explorer-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header-section {
+  flex: 0 0 auto;
+}
+
+.list-container {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
 .bg-white {
   background-color: #ffffff;
 }

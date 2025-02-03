@@ -33,5 +33,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
   getTiffFiles: (folder: string) => ipcRenderer.invoke('get-tiff-files', folder),
   getTiffData: (imagePath: string) => ipcRenderer.invoke('get-tiff-data', imagePath),
-  getPngData: (imagePath: string) => ipcRenderer.invoke('get-png-data', imagePath)
+  getPngData: (imagePath: string) => ipcRenderer.invoke('get-png-data', imagePath),
+  saveAnnotationsData: (imagePath: string, data: string) => ipcRenderer.invoke('save-annotations-data', imagePath, data),
+  loadAnnotationsData: (imagePath: string) => ipcRenderer.invoke('get-annotations-data', imagePath),
 });

@@ -3,12 +3,10 @@
     <q-header elevated>
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
-        <q-toolbar-title>Image Annotator</q-toolbar-title>
-        <!-- <div>Quasar v{{ $q.version }}</div> -->
-
-        <q-space />
+        <q-toolbar-title class="text-center">
+          {{ store.currentImagePath || 'Image Annotator' }}
+        </q-toolbar-title>
         <q-btn flat dense round icon="settings" aria-label="Settings" @click="toggleRightDrawer" />
-
       </q-toolbar>
     </q-header>
 
@@ -41,40 +39,35 @@ import { useStorage } from '@vueuse/core';
 import ImageExplorer from 'src/components/ImageExplorer.vue';
 import ImageViewer from 'src/components/ImageViewer.vue';
 import AnnotationList from 'src/components/AnnotationList.vue';
+import { useGlobalStore } from 'src/stores/global-store';
 
-const rightDrawerWidth = useStorage("rightDrawerWidth", 400)
-const rightDrawerOpen = useStorage("rightDrawerOpen", false)
+const store = useGlobalStore();
 
-const leftDrawerOpen = useStorage("leftDrawerOpen", true)
-const leftDrawerWidth = useStorage("leftDrawerWidth", 400)
+const rightDrawerWidth = useStorage("rightDrawerWidth", 400);
+const rightDrawerOpen = useStorage("rightDrawerOpen", false);
 
+const leftDrawerOpen = useStorage("leftDrawerOpen", true);
+const leftDrawerWidth = useStorage("leftDrawerWidth", 400);
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;
 }
-
 function toggleRightDrawer() {
   rightDrawerOpen.value = !rightDrawerOpen.value;
 }
 
-let initRightDrawerWidth = 200
+let initRightDrawerWidth = 200;
 function resizeRightDrawer(ev: any) {
-  if (ev.isFirst === true) {
-    initRightDrawerWidth = rightDrawerWidth.value
-  }
-  rightDrawerWidth.value = initRightDrawerWidth - ev.offset.x
+  if (ev.isFirst === true) { initRightDrawerWidth = rightDrawerWidth.value; }
+  rightDrawerWidth.value = initRightDrawerWidth - ev.offset.x;
 }
 
-let initLeftDrawerWidth = 200
+let initLeftDrawerWidth = 200;
 function resizeLeftDrawer(ev: any) {
-  if (ev.isFirst === true) {
-    initLeftDrawerWidth = leftDrawerWidth.value
-  }
-  leftDrawerWidth.value = initLeftDrawerWidth + ev.offset.x
+  if (ev.isFirst === true) { initLeftDrawerWidth = leftDrawerWidth.value; }
+  leftDrawerWidth.value = initLeftDrawerWidth + ev.offset.x;
 }
-
 </script>
-
 
 <style>
 .q-drawer__resizerl {
