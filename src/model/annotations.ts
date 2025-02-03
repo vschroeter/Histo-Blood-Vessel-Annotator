@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { type PointLike, Point } from "2d-geometry";
 import { useGlobalStore } from 'src/stores/global-store';
+import { ref, type Ref } from 'vue';
 import { useThrottleFn } from '@vueuse/core';
 
 export interface Renderable {
@@ -78,6 +79,10 @@ export abstract class Annotation implements Renderable {
 // }
 
 export class PolygonAnnotation extends Annotation {
+  // Add a reactive area property
+  // area: Ref<number> = ref(0);
+  area: number = 0;
+
   constructor() {
     super();
     this.color = 'blue';
@@ -111,13 +116,30 @@ export class PolygonAnnotation extends Annotation {
     return polygon;
   }
 
+  // Calculate area using the shoelace formula
+  private calculateArea(): void {
+    if (this.points.length < 3) {
+      this.area = 0;
+      return;
+    }
+    let sum = 0;
+    for (let i = 0; i < this.points.length; i++) {
+      const cur = this.points[i]!;
+      const next = this.points[(i + 1) % this.points.length]!;
+      sum += cur.x * next.y - cur.y * next.x;
+    }
+    this.area = Math.abs(sum / 2);
+  }
+
   addPoint(point: PointLike): AddPointResult {
     this.points.push(new Point(point.x, point.y));
+    this.calculateArea();
     return "added";
   }
 
   removeLastPoint(): void {
     this.points = this.points.slice(0, -1);
+    this.calculateArea();
   }
 
 }
@@ -125,9 +147,9 @@ export class PolygonAnnotation extends Annotation {
 export class ImageAnnotation {
   filePath?: string;
   pixelPerMicro?: number;
-  annotations: Annotation[] = [];
+  annotations: PolygonAnnotation[] = [];
 
-  selectedAnnotation?: Annotation;
+  selectedAnnotation?: PolygonAnnotation;
 
   store = useGlobalStore();
 

@@ -212,6 +212,9 @@ export class KonvaImageViewer {
 
     this.imageAnnotation = imageAnn;
 
+    // TODO: Change this to just a const variable
+    this.store.currentImageAnnotation = imageAnn;
+
     imageAnn.redrawAnnotations();
   }
 
