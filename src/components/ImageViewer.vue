@@ -15,12 +15,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import type Konva from 'konva';
 import { useGlobalStore } from 'src/stores/global-store';
 import { useThrottleFn } from '@vueuse/core';
 import type { ImageAnnotation } from 'src/model/annotations';
-import { LineAnnotation, PolygonAnnotation } from 'src/model/annotations';
 import { KonvaImageViewer } from 'src/model/viewer';
 
 const store = useGlobalStore();
@@ -29,22 +28,16 @@ const containerRef = ref<HTMLDivElement | null>(null);
 
 let konvaImageViewer: KonvaImageViewer | null = null;
 
-// const currentPixel = ref({ x: 0, y: 0 });
-// const currentZoom = ref(1);
-
 // For annotation drawing
 // const currentAnnotationPoints = ref<Point[]>([]);
 
 // Reactive annotation object for current image
-const currentImageAnnotation = ref<ImageAnnotation | null>(null);
-
-// const updateMousePosition = useThrottleFn((pos: { x: number, y: number }) => {
-//   // console.log(`Stage pointer: (${Math.round(pos.x)}, ${Math.round(pos.y)})`);
-// }, 100);
+const imageAnnotation = computed(() => konvaImageViewer?.imageAnnotation);
 
 ////////////////////////////////////////////////////////////////////////////
 // #region Mounting Stage
 ////////////////////////////////////////////////////////////////////////////
+
 
 // Initialize the Konva stage on mounted
 onMounted(() => {
@@ -52,6 +45,37 @@ onMounted(() => {
     console.log('Initializing Konva stage');
     konvaImageViewer = new KonvaImageViewer(containerRef.value);
     console.log('Konva stage initialized');
+
+    konvaImageViewer.stage.on('click', (e) => {
+      const pos = konvaImageViewer?.updateMousePosition();
+      if (!pos) {
+        return;
+      }
+
+      // Detect whether right click or left click
+      if (e.evt.button === 2) {
+        imageAnnotation.value?.rightClickPoint(pos);
+      } else {
+        imageAnnotation.value?.clickPoint(pos);
+      }
+
+      konvaImageViewer?.redrawThrottled().catch((error) => {
+        console.error('Error redrawing:', error);
+      });
+    });
+
+    konvaImageViewer.stage.on('mousemove', (e) => {
+      const pos = konvaImageViewer?.updateMousePosition();
+      if (!pos) {
+        return;
+      }
+      imageAnnotation.value?.hoverPoint(pos);
+      konvaImageViewer?.redrawThrottled().catch((error) => {
+        console.error('Error redrawing:', error);
+      });
+
+    });
+
   }
 });
 
@@ -59,18 +83,6 @@ onMounted(() => {
 // #region Mounting Stage
 ////////////////////////////////////////////////////////////////////////////
 
-// Helper: save current annotations as JSON file via electronAPI
-async function saveAnnotations() {
-  if (!currentImageAnnotation.value || !store.folderPath || !store.currentImagePath) return;
-  const fileName = store.currentImagePath.split('/').pop() || store.currentImagePath;
-  const annFilePath = store.folderPath + '/' + fileName + '_annotations.json';
-  const jsonData = currentImageAnnotation.value.toJSON();
-  try {
-    await window.electronAPI.saveAnnotationsData(annFilePath, jsonData);
-  } catch (error) {
-    console.error('Error saving annotations:', error);
-  }
-}
 
 // Load and display image using Konva when currentImagePath changes
 watch(() => store.currentImagePath, (newPath) => {
@@ -81,6 +93,7 @@ watch(() => store.currentImagePath, (newPath) => {
     konvaImageViewer?.loadImage(newPath)
       .then(() => {
         loading.value = false;
+        console.log('Annotation', konvaImageViewer?.imageAnnotation);
       })
       .catch((error) => {
         console.error('Error loading image:', error);
@@ -88,6 +101,11 @@ watch(() => store.currentImagePath, (newPath) => {
       });
   }
 });
+
+
+
+
+
 </script>
 
 <style scoped>

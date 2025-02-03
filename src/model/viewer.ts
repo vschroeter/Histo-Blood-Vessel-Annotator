@@ -3,6 +3,7 @@ import Konva from "konva";
 import { ref, type Ref } from "vue";
 import { ImageAnnotation } from "./annotations";
 import { useGlobalStore } from "src/stores/global-store";
+import { useThrottleFn } from "@vueuse/core";
 
 
 export class KonvaImageViewer {
@@ -76,17 +77,7 @@ export class KonvaImageViewer {
 
     // Display pointer position considering zoom & pan
     this.stage.on('mousemove', (e) => {
-      const pos = this.stage.getPointerPosition();
-      if (!pos) return;
-
-      // Include this.stage position and scale to get the correct image pixel position
-      pos.x -= this.stage.x();
-      pos.y -= this.stage.y();
-
-      pos.x /= this.stage.scaleX();
-      pos.y /= this.stage.scaleY();
-
-      this.currentPixel.value = { x: pos.x, y: pos.y };
+      this.updateMousePosition();
 
       // updateMousePosition({ x: pos.x, y: pos.y }).catch(console.error);
 
@@ -168,6 +159,90 @@ export class KonvaImageViewer {
 
   }
 
+  ////////////////////////////////////////////////////////////////////////////
+  // #region Drawings
+  ////////////////////////////////////////////////////////////////////////////
+
+  redrawThrottled = useThrottleFn(() => {
+    this.redraw();
+  }, 50);
+
+  redraw() {
+    this.annotationLayer.destroyChildren();
+    this.imageAnnotation?.redrawAnnotations();
+    this.stage.batchDraw();
+  }
+
+
+  ////////////////////////////////////////////////////////////////////////////
+  // #region Pixel Position
+  ////////////////////////////////////////////////////////////////////////////
+
+  updateMousePosition() {
+    const pos = this.stage.getPointerPosition();
+    if (!pos) return;
+
+    // Include this.stage position and scale to get the correct image pixel position
+    pos.x -= this.stage.x();
+    pos.y -= this.stage.y();
+
+    pos.x /= this.stage.scaleX();
+    pos.y /= this.stage.scaleY();
+
+    this.currentPixel.value = { x: pos.x, y: pos.y };
+    return this.currentPixel.value;
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // #region Annotations
+  ////////////////////////////////////////////////////////////////////////////
+
+  async loadAnnotationsForImage(imagePath: string): Promise<void> {
+    const fileName = imagePath.split('/').pop() || imagePath;
+    const annFilePath = this.store.folderPath + '/' + fileName + '_annotations.json';
+    const annData = await window.electronAPI.loadAnnotationsData(annFilePath);
+    let imageAnn: ImageAnnotation;
+    if (annData) {
+      imageAnn = ImageAnnotation.fromJSON(annData);
+    } else {
+      imageAnn = new ImageAnnotation();
+    }
+    imageAnn.filePath = imagePath;
+    imageAnn.layer = this.annotationLayer;
+
+    this.imageAnnotation = imageAnn;
+
+    imageAnn.redrawAnnotations();
+  }
+
+  async saveAnnotations(): Promise<void> {
+    if (this.imageAnnotation) {
+      const fileName = this.imageAnnotation.filePath?.split('/').pop() || '';
+      const annFilePath = this.store.folderPath + '/' + fileName + '_annotations.json';
+      const jsonData = this.imageAnnotation.toJSON();
+      await window.electronAPI.saveAnnotationsData(annFilePath, jsonData);
+    }
+  }
+
+
+  //   // Helper: save current annotations as JSON file via electronAPI
+  // async function saveAnnotations() {
+  //   if (!currentImageAnnotation.value || !store.folderPath || !store.currentImagePath) return;
+  //   const fileName = store.currentImagePath.split('/').pop() || store.currentImagePath;
+  //   const annFilePath = store.folderPath + '/' + fileName + '_annotations.json';
+  //   const jsonData = currentImageAnnotation.value.toJSON();
+  //   try {
+  //     await window.electronAPI.saveAnnotationsData(annFilePath, jsonData);
+  //   } catch (error) {
+  //     console.error('Error saving annotations:', error);
+  //   }
+  // }
+
+
+  ////////////////////////////////////////////////////////////////////////////
+  // #region Image Loading
+  ////////////////////////////////////////////////////////////////////////////
+
   async loadImage(imagePath: string): Promise<void> {
     console.log('Loading image:', imagePath);
     // loading.value = true;
@@ -204,21 +279,10 @@ export class KonvaImageViewer {
 
                 this.imageLayer.add(this.image);
                 this.imageLayer.batchDraw();
-                // Load stored annotations if available
-                const fileName = imagePath.split('/').pop() || imagePath;
-                const annFilePath = this.store.folderPath + '/' + fileName + '_annotations.json';
-                const annData = await window.electronAPI.loadAnnotationsData(annFilePath);
-                let imageAnn: ImageAnnotation;
-                if (annData) {
-                  imageAnn = ImageAnnotation.fromJSON(annData);
-                } else {
-                  imageAnn = new ImageAnnotation();
-                }
-                imageAnn.filePath = imagePath;
-                // currentImageAnnotation.value = imageAnn;
-                this.imageAnnotation = imageAnn;
 
-                imageAnn.redrawAnnotations(this.annotationLayer);
+                // Load stored annotations if available
+                await this.loadAnnotationsForImage(imagePath);
+
                 resolve();
               } catch (error: unknown) {
                 console.error(error);
