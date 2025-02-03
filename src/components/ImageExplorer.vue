@@ -5,22 +5,24 @@
     <q-btn dense label="Load Files" @click="loadFiles" class="q-mb-md" />
     <!-- Quasar Dense List for Files -->
     <q-list dense bordered class="bg-white">
-      <q-item v-for="file in files" :key="file" clickable @click="selectFile(file)" class="q-pa-xs">
-        <q-item-section>{{ file }}</q-item-section>
-        <q-separator inset />
-      </q-item>
+      <template v-for="file in files" :key="file">
+        <q-item clickable @click="selectFile(file)" class="q-pa-xs" :active="isSelected(file)">
+          <q-item-section>{{ file }}</q-item-section>
+        </q-item>
+        <!-- <q-separator v-if="index < files.length - 1" inset /> -->
+      </template>
     </q-list>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useGlobalStore } from 'src/stores/globa-store';
 
 const store = useGlobalStore();
 const files = ref<string[]>([]);
 
-function loadFiles() {
+function loadFiles(): void {
   if (store.folderPath) {
     window.electronAPI.getTiffFiles(store.folderPath)
       .then(f => { files.value = f; })
@@ -33,9 +35,19 @@ function loadFiles() {
   }
 }
 
-function selectFile(file: string) {
+function selectFile(file: string): void {
   store.currentImagePath = store.folderPath + '/' + file;
 }
+
+const isSelected = (file: string): boolean => {
+  return store.currentImagePath === store.folderPath + '/' + file;
+};
+
+onMounted(() => {
+  if (store.folderPath) {
+    loadFiles();
+  }
+});
 </script>
 
 <style scoped>

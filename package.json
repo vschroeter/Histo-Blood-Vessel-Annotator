@@ -17,6 +17,7 @@
   "dependencies": {
     "@quasar/extras": "^1.16.4",
     "@vueuse/core": "^12.5.0",
+    "konva": "^9.3.18",
     "pinia": "^2.0.11",
     "quasar": "^2.16.0",
     "sharp": "^0.33.5",
