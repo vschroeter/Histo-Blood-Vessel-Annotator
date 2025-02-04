@@ -1,13 +1,17 @@
 import Konva from 'konva';
 import { type PointLike, Point } from "2d-geometry";
 import { useGlobalStore } from 'src/stores/global-store';
-import { ref, type Ref } from 'vue';
+import type { Raw } from 'vue';
+import { markRaw, ref, type Ref } from 'vue';
 import { useThrottleFn } from '@vueuse/core';
+
+////////////////////////////////////////////////////////////////////////////
+// #region Annotation classes
+////////////////////////////////////////////////////////////////////////////
 
 export interface Renderable {
   render(layer: Konva.Layer): Konva.Shape;
 }
-
 
 type AddPointResult = "added" | "complete" | "ignored";
 
@@ -90,7 +94,7 @@ export class PolygonAnnotation extends Annotation {
   render(layer: Konva.Layer): Konva.Shape {
     const flat = this.points.reduce((acc, pt) => acc.concat([pt.x, pt.y]), [] as number[]);
 
-    if (flat.length > 2) {
+    if (flat.length >= 2) {
 
       if (this.hoveredPoint) {
         flat.push(this.hoveredPoint.x, this.hoveredPoint.y);
@@ -144,6 +148,10 @@ export class PolygonAnnotation extends Annotation {
 
 }
 
+////////////////////////////////////////////////////////////////////////////
+// #region Image annotation
+////////////////////////////////////////////////////////////////////////////
+
 export class ImageAnnotation {
   filePath?: string;
   pixelPerMicro?: number;
@@ -151,12 +159,14 @@ export class ImageAnnotation {
 
   selectedAnnotation?: PolygonAnnotation;
 
-  store = useGlobalStore();
+  store = markRaw(useGlobalStore());
 
-  layer?: Konva.Layer;
+  layer?: Raw<Konva.Layer>;
 
 
   rightClickPoint(point: PointLike): void {
+
+    // const a = markRaw(new PolygonAnnotation());
 
     if (this.selectedAnnotation) {
       this.selectedAnnotation.removeLastPoint();
@@ -201,6 +211,28 @@ export class ImageAnnotation {
     }
 
     this.redrawAnnotations();
+  }
+
+  removeAnnotation(annotation: PolygonAnnotation): void {
+    this.annotations = this.annotations.filter(ann => ann !== annotation);
+    this.redrawAnnotations();
+  }
+
+  processKeydown(event: KeyboardEvent): void {
+
+    if (event.key === 'Escape') {
+      if (this.selectedAnnotation) {
+        this.removeAnnotation(this.selectedAnnotation);
+        this.selectedAnnotation = undefined as any;
+      }
+    }
+
+    if (event.key == "Enter") {
+      if (this.selectedAnnotation) {
+        this.selectedAnnotation = undefined as any;
+        this.store.currentTool = null;
+      }
+    }
 
   }
 
@@ -213,92 +245,13 @@ export class ImageAnnotation {
 
   }
 
-  redrawAnnotations(
-    // annotationLayer: Konva.Layer,
-    // previewPoints?: Point[],
-    // currentTool?: 'line' | 'polygon'
-  ): void {
-
+  redrawAnnotations(): void {
     if (this.layer) {
-
-      // this.layer.destroyChildren();
-
-      // Draw a test line to the annotation layer
-      // const line = new Konva.Line({
-      //   points: [10, 10, 100, 100],
-      //   stroke: 'red',
-      //   strokeWidth: 2,
-      //   lineCap: 'round',
-      //   lineJoin: 'round',
-      // });
-      // this.layer.add(line);
       this.layer.destroyChildren();
-
       this.annotations.forEach(ann => ann.render(this.layer!));
-      // console.log('Redrawing annotations', this.annotations, this.layer);
       this.layer.batchDraw();
     }
 
-    // annotationLayer.destroyChildren();
-    // // Render stored annotations
-    // this.annotations.forEach(ann => ann.render(annotationLayer));
-    // // Render preview if provided
-    // if (previewPoints && previewPoints.length && currentTool) {
-    //   if (currentTool === 'line') {
-    //     if (previewPoints.length === 1) {
-    //       const circle = new Konva.Circle({
-    //         x: previewPoints[0]!.x,
-    //         y: previewPoints[0]!.y,
-    //         radius: 4,
-    //         fill: 'red',
-    //       });
-    //       annotationLayer.add(circle);
-    //     } else {
-    //       const line = new Konva.Line({
-    //         points: previewPoints.reduce((acc, p) => acc.concat([p.x, p.y]), [] as number[]),
-    //         stroke: 'red',
-    //         strokeWidth: 2,
-    //         lineCap: 'round',
-    //         lineJoin: 'round',
-    //       });
-    //       annotationLayer.add(line);
-    //       previewPoints.forEach(p => {
-    //         const handle = new Konva.Circle({
-    //           x: p.x,
-    //           y: p.y,
-    //           radius: 4,
-    //           fill: 'white',
-    //           stroke: 'red',
-    //           strokeWidth: 1,
-    //           draggable: true,
-    //         });
-    //         annotationLayer.add(handle);
-    //       });
-    //     }
-    //   } else if (currentTool === 'polygon') {
-    //     const poly = new Konva.Line({
-    //       points: previewPoints.reduce((acc, p) => acc.concat([p.x, p.y]), [] as number[]),
-    //       stroke: 'blue',
-    //       strokeWidth: 2,
-    //       lineCap: 'round',
-    //       lineJoin: 'round',
-    //       closed: false,
-    //     });
-    //     annotationLayer.add(poly);
-    //     previewPoints.forEach(p => {
-    //       const handle = new Konva.Circle({
-    //         x: p.x,
-    //         y: p.y,
-    //         radius: 4,
-    //         fill: 'white',
-    //         stroke: 'blue',
-    //         strokeWidth: 1,
-    //       });
-    //       annotationLayer.add(handle);
-    //     });
-    //   }
-    // }
-    // annotationLayer.batchDraw();
   }
 
   toJSON(): string {

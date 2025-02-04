@@ -24,7 +24,7 @@
             <div @click="editingRow = index" class="color-box" :style="{ backgroundColor: ann.color }"></div>
             <q-color v-if="editingRow === index" v-model="ann.color" @blur="editingRow = null" />
           </td>
-          <td>{{ ann.area.value.toFixed(2) }}</td>
+          <td>{{ ann.area.toFixed(2) }}</td>
         </tr>
       </tbody>
     </table>
@@ -48,7 +48,7 @@ const editingRow = ref<number | null>(null);
 // Assume currentImageAnnotation holds the active ImageAnnotation.
 // If not available, the table will be empty.
 const polygonAnnotations = computed(() => {
-  return store.currentImageAnnotations?.annotations.filter(ann => ann.constructor.name === "PolygonAnnotation") || [];
+  return store.currentImageAnnotation?.annotations.filter(ann => ann.constructor.name === "PolygonAnnotation") || [];
 });
 </script>
 

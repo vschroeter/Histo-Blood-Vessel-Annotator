@@ -12,3 +12,8 @@ export const useGlobalStore = defineStore('global', {
   }),
   // ...existing code...
 });
+
+export const globalStaticStore = {
+  // currentImageAnnotation
+
+}

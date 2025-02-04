@@ -155,6 +155,10 @@ export class KonvaImageViewer {
     //   }
     // });
 
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      this.processKeydown(e);
+    });
+
     console.log('Konva this.stage initialized');
 
   }
@@ -196,6 +200,10 @@ export class KonvaImageViewer {
   ////////////////////////////////////////////////////////////////////////////
   // #region Annotations
   ////////////////////////////////////////////////////////////////////////////
+
+  processKeydown(e: KeyboardEvent) {
+    this.imageAnnotation?.processKeydown(e);
+  }
 
   async loadAnnotationsForImage(imagePath: string): Promise<void> {
     const fileName = imagePath.split('/').pop() || imagePath;
