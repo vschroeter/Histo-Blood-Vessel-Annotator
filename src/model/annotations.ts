@@ -83,6 +83,12 @@ export abstract class Annotation implements Renderable {
 // }
 
 export class PolygonAnnotation extends Annotation {
+  loadJSON(ann: any) {
+    this.points = ann.points.map((pt: any) => new Point(pt.x, pt.y));
+    this.color = ann.color;
+    this.calculateArea();
+    // this.area = ann.area;
+  }
   // Add a reactive area property
   // area: Ref<number> = ref(0);
   area: number = 0;
@@ -267,8 +273,17 @@ export class ImageAnnotation {
     const imageAnn = new ImageAnnotation();
     imageAnn.filePath = data.filePath;
     imageAnn.pixelPerMicro = data.pixelPerMicro;
-    // Note: You might need more robust rehydration of each annotation instance.
-    imageAnn.annotations = data.annotations || [];
+
+
+    // imageAnn.annotations = data.annotations || [];
+    imageAnn.annotations = (data.annotations ?? []).map((ann: any) => {
+      const polygon = new PolygonAnnotation();
+      polygon.loadJSON(ann);
+      return polygon;
+    });
+
+    console.log("Loaded annotations", imageAnn, json);
+
     return imageAnn;
   }
 }

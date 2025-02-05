@@ -261,6 +261,10 @@ export class KonvaImageViewer {
     return new Promise<void>((resolve, reject) => {
       (async () => {
         try {
+
+          // Save old annotations before loading new image
+          await this.saveAnnotations();
+
           const base64Data = await window.electronAPI.getPngData(imagePath);
           const imageSrc = base64Data ? `data:image/png;base64,${base64Data}` : '';
 
