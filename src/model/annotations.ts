@@ -19,7 +19,7 @@ export abstract class Annotation implements Renderable {
 
   color: string = 'black';
 
-  hoveredPoint?: Point;
+  hoveredPoint?: Point | undefined;
 
   points: Point[] = [];
 
@@ -259,10 +259,16 @@ export class ImageAnnotation {
 
     if (event.key == "Enter") {
       if (this.selectedAnnotation) {
+        this.selectedAnnotation.hoveredPoint = undefined;
         this.selectedAnnotation = undefined as any;
         this.store.currentTool = null;
+
+        // Sort the annotations by area
+        this.annotations.sort((a, b) => b.area - a.area);
       }
     }
+
+    this.redrawAnnotations();
   }
 
   hoverPoint(point: PointLike): void {

@@ -157,6 +157,12 @@ export class KonvaImageViewer {
 
     document.addEventListener('keydown', (e: KeyboardEvent) => {
       this.processKeydown(e);
+
+      if (e.key === 'Enter') {
+        this.saveAnnotations().catch(console.error);
+
+      }
+
     });
 
     console.log('Konva this.stage initialized');
@@ -207,7 +213,7 @@ export class KonvaImageViewer {
 
   async loadAnnotationsForImage(imagePath: string): Promise<void> {
     const fileName = imagePath.split('/').pop() || imagePath;
-    const annFilePath = this.store.folderPath + '/' + fileName + '_annotations.json';
+    const annFilePath = this.store.folderPath + '/annotations/' + fileName + '_annotations.json';
     const annData = await window.electronAPI.loadAnnotationsData(annFilePath);
     let imageAnn: ImageAnnotation;
     if (annData) {
@@ -230,7 +236,7 @@ export class KonvaImageViewer {
   async saveAnnotations(): Promise<void> {
     if (this.imageAnnotation) {
       const fileName = this.imageAnnotation.filePath?.split('/').pop() || '';
-      const annFilePath = this.store.folderPath + '/' + fileName + '_annotations.json';
+      const annFilePath = this.store.folderPath + '/annotations/' + fileName + '_annotations.json';
       const jsonData = this.imageAnnotation.toJSON();
       await window.electronAPI.saveAnnotationsData(annFilePath, jsonData);
     }
