@@ -85,6 +85,11 @@ ipcMain.handle('get-png-data', async (_event: Electron.IpcMainInvokeEvent, image
 
 ipcMain.handle('save-annotations-data', async (_event, filePath: string, jsonData: string) => {
   try {
+
+    // Ensure that directory exists
+    const dir = path.dirname(filePath);
+    await fs.mkdir(dir, { recursive: true });
+
     await fs.writeFile(filePath, jsonData, 'utf-8');
     return { success: true };
   } catch (error: any) {

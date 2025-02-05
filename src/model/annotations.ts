@@ -143,15 +143,10 @@ export class PolygonAnnotation extends Annotation {
     this.area = Math.abs(sum / 2);
   }
 
-  // Change areaInMicroSquared to use the parent's pixelPerMicro property
+  // Change areaInMicroSquared to use the parent's micrometerPerPixel property
   get areaInMicroSquared(): number {
-    const ppm = this.parent ? this.parent.pixelPerMicro ?? 1 : 1;
-    // console.log({
-    //   area: this.area,
-    //   ppm,
-    //   parent: this.parent
-    // })
-    return this.area / (ppm ** 2);
+    const mpp = this.parent ? this.parent.micrometerPerPixel ?? 1 : 1;
+    return this.area * (mpp ** 2);
   }
 
   addPoint(point: PointLike): AddPointResult {
@@ -172,18 +167,18 @@ export class PolygonAnnotation extends Annotation {
 ////////////////////////////////////////////////////////////////////////////
 
 export class ImageAnnotation {
-  static lastPixelPerMicro: number = 1; // default value
+  static lastMicrometerPerPixel: number = 1; // default value
 
   filePath?: string;
-  // Replace pixelPerMicro with a backing field.
-  private _pixelPerMicro?: number;
-  get pixelPerMicro() {
-    return this._pixelPerMicro;
+
+  private _micrometerPerPixel?: number;
+  get micrometerPerPixel() {
+    return this._micrometerPerPixel;
   }
-  set pixelPerMicro(val: number | undefined) {
+  set micrometerPerPixel(val: number | undefined) {
     if (val !== undefined) {
-      this._pixelPerMicro = val;
-      ImageAnnotation.lastPixelPerMicro = val;
+      this._micrometerPerPixel = val;
+      ImageAnnotation.lastMicrometerPerPixel = val;
     }
   }
 
@@ -193,8 +188,8 @@ export class ImageAnnotation {
   layer?: Raw<Konva.Layer>;
 
   constructor() {
-    // When a new ImageAnnotation is created, copy the last used pixelPerMicro value:
-    this.pixelPerMicro = ImageAnnotation.lastPixelPerMicro;
+    // When a new ImageAnnotation is created, copy the last used micrometerPerPixel value:
+    this.micrometerPerPixel = ImageAnnotation.lastMicrometerPerPixel;
   }
 
   rightClickPoint(point: PointLike): void {
@@ -290,7 +285,7 @@ export class ImageAnnotation {
   toJSON(): string {
     return JSON.stringify({
       filePath: this.filePath,
-      pixelPerMicro: this.pixelPerMicro,
+      micrometerPerPixel: this.micrometerPerPixel,
       annotations: this.annotations.map(ann => ({
         points: ann.points, // Points will be used to recalc the area later via loadJSON
         color: ann.color
@@ -302,7 +297,7 @@ export class ImageAnnotation {
     const data = JSON.parse(json);
     const imageAnn = new ImageAnnotation();
     imageAnn.filePath = data.filePath;
-    imageAnn.pixelPerMicro = data.pixelPerMicro;
+    imageAnn.micrometerPerPixel = data.micrometerPerPixel;
     imageAnn.annotations = (data.annotations ?? []).map((ann: any) => {
       const polygon = new PolygonAnnotation();
       polygon.parent = imageAnn;

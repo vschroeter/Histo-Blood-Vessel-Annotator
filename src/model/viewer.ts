@@ -234,7 +234,7 @@ export class KonvaImageViewer {
   }
 
   async saveAnnotations(): Promise<void> {
-    if (this.imageAnnotation) {
+    if (this.imageAnnotation && this.imageAnnotation.annotations.length > 0) {
       const fileName = this.imageAnnotation.filePath?.split('/').pop() || '';
       const annFilePath = this.store.folderPath + '/annotations/' + fileName + '_annotations.json';
       const jsonData = this.imageAnnotation.toJSON();

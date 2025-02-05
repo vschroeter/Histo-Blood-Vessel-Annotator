@@ -7,9 +7,9 @@
       <q-btn icon="polymer" flat round tooltip="Polygon Annotation Tool - press Enter to finish"
         @click="selectTool('polygon')" :class="{ active: store.currentTool === 'polygon' }" />
     </div>
-    <!-- New q-input for pixelPerMicro -->
-    <q-input v-if="store.currentImageAnnotation" v-model.number="store.currentImageAnnotation.pixelPerMicro"
-      type="number" label="Pixel Per Micro" dense />
+    <!-- Updated input for micrometerPerPixel -->
+    <q-input v-if="store.currentImageAnnotation" v-model.number="store.currentImageAnnotation.micrometerPerPixel"
+      type="number" label="Micrometer Per Pixel" dense />
     <!-- Annotation list displayed in a table -->
     <h4>Polygon Annotations</h4>
     <table v-if="polygonAnnotations.length">
