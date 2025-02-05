@@ -108,6 +108,15 @@ ipcMain.handle('get-annotations-data', async (_event, filePath: string) => {
   }
 });
 
+ipcMain.handle('check-annotation-exists', async (_event, filePath: string) => {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch (_) {
+    return false;
+  }
+});
+
 app.whenReady().then(createWindow).catch(console.error);
 
 app.on('window-all-closed', () => {

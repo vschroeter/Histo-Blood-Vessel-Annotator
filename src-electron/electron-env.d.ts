@@ -15,6 +15,7 @@ interface ElectronAPI {
   getPngData(imagePath: string): Promise<string | null>;
   saveAnnotationsData(imagePath: string, data: string): Promise<void>;
   loadAnnotationsData(imagePath: string): Promise<string>;
+  checkAnnotationExists(filePath: string): Promise<boolean>;
 }
 
 declare global {

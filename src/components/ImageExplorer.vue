@@ -8,9 +8,12 @@
     <!-- Scrollable list section -->
     <div class="list-container">
       <q-list dense bordered class="bg-white">
-        <template v-for="file in files" :key="file">
-          <q-item clickable @click="selectFile(file)" class="q-pa-xs" :active="isSelected(file)">
-            <q-item-section>{{ file }}</q-item-section>
+        <template v-for="item in files" :key="item.name">
+          <q-item clickable @click="selectFile(item.name)" class="q-pa-xs"
+            :class="{ 'green-item': item.hasAnnotation, 'red-item': !item.hasAnnotation }">
+            <q-item-section :class="{ 'selected-text': store.currentImagePath === store.folderPath + '/' + item.name }">
+              {{ item.name }}
+            </q-item-section>
           </q-item>
         </template>
       </q-list>
@@ -19,20 +22,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useGlobalStore } from 'src/stores/global-store';
 
-const store = useGlobalStore();
-const files = ref<string[]>([]);
+interface FileItem {
+  name: string;
+  hasAnnotation: boolean;
+}
 
-function loadFiles(): void {
+const store = useGlobalStore();
+const files = ref<FileItem[]>([]);
+
+async function loadFiles(): Promise<void> {
   if (store.folderPath) {
-    window.electronAPI.getTiffFiles(store.folderPath)
-      .then(f => { files.value = f; })
-      .catch(error => {
-        console.error(error);
-        files.value = [];
-      });
+    try {
+      const fileNames: string[] = await window.electronAPI.getTiffFiles(store.folderPath);
+      const items: FileItem[] = await Promise.all(
+        fileNames.map(async (file) => {
+          const annFilePath = store.folderPath + '/annotations/' + file + '_annotations.json';
+          const exists = await window.electronAPI.checkAnnotationExists(annFilePath);
+          return { name: file, hasAnnotation: exists };
+        })
+      );
+      files.value = items;
+    } catch (error) {
+      console.error(error);
+      files.value = [];
+    }
   } else {
     files.value = [];
   }
@@ -42,15 +58,23 @@ function selectFile(file: string): void {
   store.currentImagePath = store.folderPath + '/' + file;
 }
 
-const isSelected = (file: string): boolean => {
-  return store.currentImagePath === store.folderPath + '/' + file;
-};
-
-onMounted(() => {
+onMounted(async () => {
   if (store.folderPath) {
-    loadFiles();
+    await loadFiles();
   }
 });
+
+// New watch to update highlighting when annotations change
+watch(
+  () => store.currentImageAnnotation,
+  () => {
+    if (store.folderPath) {
+      loadFiles().catch((error) => {
+        console.error('Error loading files:', error);
+      });
+    }
+  }
+);
 </script>
 
 <style scoped>
@@ -71,5 +95,18 @@ onMounted(() => {
 
 .bg-white {
   background-color: #ffffff;
+}
+
+/* Highlighting styles */
+.green-item {
+  background-color: #d0f0c0 !important;
+}
+
+.red-item {
+  background-color: #f0d0d0 !important;
+}
+
+.selected-text {
+  font-weight: bold;
 }
 </style>

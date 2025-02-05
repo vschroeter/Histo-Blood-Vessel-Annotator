@@ -3,7 +3,7 @@ import Konva from "konva";
 import { nextTick, ref, type Ref } from "vue";
 import { ImageAnnotation } from "./annotations";
 import { useGlobalStore } from "src/stores/global-store";
-import { useThrottleFn } from "@vueuse/core";
+import { useResizeObserver, useThrottleFn } from "@vueuse/core";
 
 
 export class KonvaImageViewer {
@@ -91,8 +91,8 @@ export class KonvaImageViewer {
     });
 
     // Update this.stage size on window resize
-    window.addEventListener('resize', () => {
-      console.log('Window resize event');
+    useResizeObserver(this.container, () => {
+      console.log('Container resize event');
       if (this.container) {
         nextTick(() => {
           this.stage.width(this.container.clientWidth);
@@ -101,7 +101,7 @@ export class KonvaImageViewer {
           this.resetView();
         }).catch(console.error);
       }
-    });
+    })
 
     // // Add click event for annotation points
     // this.stage.on('click', (e) => {
