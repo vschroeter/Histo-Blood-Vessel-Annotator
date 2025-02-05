@@ -218,6 +218,7 @@ export class KonvaImageViewer {
     imageAnn.filePath = imagePath;
     imageAnn.layer = this.annotationLayer;
 
+
     this.imageAnnotation = imageAnn;
 
     // TODO: Change this to just a const variable

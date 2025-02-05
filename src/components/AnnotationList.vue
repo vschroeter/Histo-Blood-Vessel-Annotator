@@ -7,24 +7,29 @@
       <q-btn icon="polymer" flat round tooltip="Polygon Annotation Tool - press Enter to finish"
         @click="selectTool('polygon')" :class="{ active: store.currentTool === 'polygon' }" />
     </div>
-    <!-- Annotation list table -->
+    <!-- New q-input for pixelPerMicro -->
+    <q-input v-if="store.currentImageAnnotation" v-model.number="store.currentImageAnnotation.pixelPerMicro"
+      type="number" label="Pixel Per Micro" dense />
+    <!-- Annotation list displayed in a table -->
     <h4>Polygon Annotations</h4>
-    <table v-if="polygonAnnotations.length" class="annotation-table">
+    <table v-if="polygonAnnotations.length">
       <thead>
         <tr>
           <th>#</th>
-          <!-- <th>Color</th> -->
-          <th>Area</th>
+          <th>Area (pixel²)</th>
+          <th>Area (µm²)</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(ann, index) in polygonAnnotations" :key="index">
           <td>{{ index + 1 }}</td>
-          <!-- <td>
-            <div @click="editingRow = index" class="color-box" :style="{ backgroundColor: ann.color }"></div>
-            <q-color v-if="editingRow === index" v-model="ann.color" @blur="editingRow = null" />
-          </td> -->
-          <td>{{ ann.area.toFixed(2) }}</td>
+          <td>{{ ann.area.toFixed(1) }}</td>
+          <!-- Now call areaInMicroSquared with no argument -->
+          <td>{{ ann.areaInMicroSquared.toFixed(1) }}</td>
+          <td>
+            <q-btn icon="delete" flat round @click="deleteAnnotation(ann)" />
+          </td>
         </tr>
       </tbody>
     </table>
@@ -43,13 +48,12 @@ function selectTool(tool: 'line' | 'polygon') {
   // In a larger app, you might propagate this tool selection via global store or an event bus.
 }
 
-const editingRow = ref<number | null>(null);
+function deleteAnnotation(ann: any) {
+  store.currentImageAnnotation?.removeAnnotation(ann);
+}
 
-// Assume currentImageAnnotation holds the active ImageAnnotation.
-// If not available, the table will be empty.
-const polygonAnnotations = computed(() => {
-  return store.currentImageAnnotation?.annotations ?? [];
-});
+const editingRow = ref<number | null>(null);
+const polygonAnnotations = computed(() => store.currentImageAnnotation?.annotations ?? []);
 </script>
 
 <style scoped>

@@ -83,11 +83,13 @@ export abstract class Annotation implements Renderable {
 // }
 
 export class PolygonAnnotation extends Annotation {
+  // New parent property to reference the ImageAnnotation instance
+  parent?: ImageAnnotation;
+
   loadJSON(ann: any) {
     this.points = ann.points.map((pt: any) => new Point(pt.x, pt.y));
     this.color = ann.color;
     this.calculateArea();
-    // this.area = ann.area;
   }
   // Add a reactive area property
   // area: Ref<number> = ref(0);
@@ -141,6 +143,17 @@ export class PolygonAnnotation extends Annotation {
     this.area = Math.abs(sum / 2);
   }
 
+  // Change areaInMicroSquared to use the parent's pixelPerMicro property
+  get areaInMicroSquared(): number {
+    const ppm = this.parent ? this.parent.pixelPerMicro ?? 1 : 1;
+    // console.log({
+    //   area: this.area,
+    //   ppm,
+    //   parent: this.parent
+    // })
+    return this.area / (ppm ** 2);
+  }
+
   addPoint(point: PointLike): AddPointResult {
     this.points.push(new Point(point.x, point.y));
     this.calculateArea();
@@ -159,21 +172,33 @@ export class PolygonAnnotation extends Annotation {
 ////////////////////////////////////////////////////////////////////////////
 
 export class ImageAnnotation {
+  static lastPixelPerMicro: number = 1; // default value
+
   filePath?: string;
-  pixelPerMicro?: number;
+  // Replace pixelPerMicro with a backing field.
+  private _pixelPerMicro?: number;
+  get pixelPerMicro() {
+    return this._pixelPerMicro;
+  }
+  set pixelPerMicro(val: number | undefined) {
+    if (val !== undefined) {
+      this._pixelPerMicro = val;
+      ImageAnnotation.lastPixelPerMicro = val;
+    }
+  }
+
   annotations: PolygonAnnotation[] = [];
-
   selectedAnnotation?: PolygonAnnotation;
-
   store = markRaw(useGlobalStore());
-
   layer?: Raw<Konva.Layer>;
 
+  constructor() {
+    // When a new ImageAnnotation is created, copy the last used pixelPerMicro value:
+    this.pixelPerMicro = ImageAnnotation.lastPixelPerMicro;
+  }
 
   rightClickPoint(point: PointLike): void {
-
-    // const a = markRaw(new PolygonAnnotation());
-
+    // ...existing code...
     if (this.selectedAnnotation) {
       this.selectedAnnotation.removeLastPoint();
 
@@ -192,7 +217,6 @@ export class ImageAnnotation {
     // If there is no selected annotation, create a new one with the selected tool
     if (!this.selectedAnnotation) {
       const tool = this.store.currentTool;
-
       console.log('Creating annotation', tool);
 
       // if (tool === 'line') {
@@ -201,10 +225,11 @@ export class ImageAnnotation {
       // } else
       if (tool === 'polygon') {
         this.selectedAnnotation = new PolygonAnnotation();
+        // Assign the parent reference
+        this.selectedAnnotation.parent = this;
         this.annotations.push(this.selectedAnnotation);
       }
     }
-
     if (this.selectedAnnotation) {
 
 
@@ -215,7 +240,6 @@ export class ImageAnnotation {
         console.log('Annotation complete');
       }
     }
-
     this.redrawAnnotations();
   }
 
@@ -225,7 +249,7 @@ export class ImageAnnotation {
   }
 
   processKeydown(event: KeyboardEvent): void {
-
+    // ...existing code...
     if (event.key === 'Escape') {
       if (this.selectedAnnotation) {
         this.removeAnnotation(this.selectedAnnotation);
@@ -239,16 +263,14 @@ export class ImageAnnotation {
         this.store.currentTool = null;
       }
     }
-
   }
 
   hoverPoint(point: PointLike): void {
-
+    // ...existing code...
     if (this.selectedAnnotation) {
       this.selectedAnnotation.hoveredPoint = new Point(point.x, point.y);
       this.redrawAnnotations();
     }
-
   }
 
   redrawAnnotations(): void {
@@ -257,14 +279,16 @@ export class ImageAnnotation {
       this.annotations.forEach(ann => ann.render(this.layer!));
       this.layer.batchDraw();
     }
-
   }
 
   toJSON(): string {
     return JSON.stringify({
       filePath: this.filePath,
       pixelPerMicro: this.pixelPerMicro,
-      annotations: this.annotations,
+      annotations: this.annotations.map(ann => ({
+        points: ann.points, // Points will be used to recalc the area later via loadJSON
+        color: ann.color
+      }))
     });
   }
 
@@ -273,17 +297,13 @@ export class ImageAnnotation {
     const imageAnn = new ImageAnnotation();
     imageAnn.filePath = data.filePath;
     imageAnn.pixelPerMicro = data.pixelPerMicro;
-
-
-    // imageAnn.annotations = data.annotations || [];
     imageAnn.annotations = (data.annotations ?? []).map((ann: any) => {
       const polygon = new PolygonAnnotation();
+      polygon.parent = imageAnn;
       polygon.loadJSON(ann);
       return polygon;
     });
-
     console.log("Loaded annotations", imageAnn, json);
-
     return imageAnn;
   }
 }
