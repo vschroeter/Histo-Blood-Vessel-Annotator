@@ -76,17 +76,6 @@ onMounted(() => {
 
     });
 
-    // document.addEventListener('keydown', (e: KeyboardEvent) => {
-    //   if (store.currentTool === 'polygon' && e.key === 'Enter' && currentAnnotationPoints.value.length > 2) {
-    //     const ann = new PolygonAnnotation([...currentAnnotationPoints.value]);
-    //     currentImageAnnotation.value?.annotations.push(ann);
-    //     currentImageAnnotation.value?.redrawAnnotations(annotationLayer);
-    //     currentAnnotationPoints.value = [];
-    //     store.currentTool = null;
-    //     saveAnnotations().catch(console.error);
-    //   }
-    // });
-
   }
 });
 

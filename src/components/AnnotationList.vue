@@ -2,8 +2,8 @@
   <div class="q-pa-md">
     <!-- Tool Selection Toolbar -->
     <div class="tool-selection">
-      <q-btn icon="timeline" flat round tooltip="Line Annotation Tool" @click="selectTool('line')"
-        :class="{ active: store.currentTool === 'line' }" />
+      <!-- <q-btn icon="timeline" flat round tooltip="Line Annotation Tool" @click="selectTool('line')"
+        :class="{ active: store.currentTool === 'line' }" /> -->
       <q-btn icon="polymer" flat round tooltip="Polygon Annotation Tool - press Enter to finish"
         @click="selectTool('polygon')" :class="{ active: store.currentTool === 'polygon' }" />
     </div>
@@ -12,12 +12,14 @@
       type="number" label="Micrometer Per Pixel" dense />
     <!-- Annotation list displayed in a table -->
     <h4>Polygon Annotations</h4>
-    <table v-if="polygonAnnotations.length">
+    <table v-if="polygonAnnotations.length" class="annotation-table">
       <thead>
         <tr>
           <th>#</th>
           <th>Area (pixel²)</th>
           <th>Area (µm²)</th>
+          <th>Circumference (µm)</th>
+          <th>Diameter (µm)</th>
           <th>Action</th>
         </tr>
       </thead>
@@ -25,8 +27,9 @@
         <tr v-for="(ann, index) in polygonAnnotations" :key="index">
           <td>{{ index + 1 }}</td>
           <td>{{ ann.area.toFixed(1) }}</td>
-          <!-- Now call areaInMicroSquared with no argument -->
           <td>{{ ann.areaInMicroSquared.toFixed(1) }}</td>
+          <td>{{ (ann.circumference * mpp).toFixed(1) }}</td>
+          <td>{{ (ann.diameter * mpp).toFixed(1) }}</td>
           <td>
             <q-btn icon="delete" flat round @click="deleteAnnotation(ann)" />
           </td>
@@ -34,26 +37,37 @@
       </tbody>
     </table>
     <p v-else>No polygon annotations yet.</p>
+    <div v-if="store.currentImageAnnotation" class="ratio-info">
+      Wall Thickness Ratio: {{ store.currentImageAnnotation.wallThicknessRatio.toFixed(3) }}
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useGlobalStore } from 'src/stores/global-store';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 const store = useGlobalStore();
 
 function selectTool(tool: 'line' | 'polygon') {
   store.currentTool = tool;
-  // In a larger app, you might propagate this tool selection via global store or an event bus.
 }
+
+watch(() => store.currentTool, (tool) => {
+  if (tool !== "polygon") {
+    store.currentTool = "polygon"
+  }
+});
+
 
 function deleteAnnotation(ann: any) {
   store.currentImageAnnotation?.removeAnnotation(ann);
 }
 
-const editingRow = ref<number | null>(null);
 const polygonAnnotations = computed(() => store.currentImageAnnotation?.annotations ?? []);
+
+// Get micrometer per pixel from the current image annotation or default to 1
+const mpp = computed(() => store.currentImageAnnotation?.micrometerPerPixel ?? 1);
 </script>
 
 <style scoped>
@@ -86,5 +100,10 @@ const polygonAnnotations = computed(() => store.currentImageAnnotation?.annotati
   cursor: pointer;
   border: 1px solid #000;
   display: inline-block;
+}
+
+.ratio-info {
+  margin-top: 12px;
+  font-weight: bold;
 }
 </style>

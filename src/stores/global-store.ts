@@ -6,7 +6,7 @@ export const useGlobalStore = defineStore('global', {
   state: () => ({
     currentImagePath: null as string | null,
     folderPath: useStorage('folderPath', ''), // persistent folder path
-    currentTool: null as 'line' | 'polygon' | null,
+    currentTool: 'polygon' as 'line' | 'polygon' | null,
     currentImageAnnotation: null as ImageAnnotation | null,
 
   }),

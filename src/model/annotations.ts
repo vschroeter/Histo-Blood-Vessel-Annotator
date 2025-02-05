@@ -116,7 +116,7 @@ export class PolygonAnnotation extends Annotation {
     const polygon = new Konva.Line({
       points: flat,
       stroke: this.color,
-      strokeWidth: 2,
+      strokeWidth: 4,
       // closed: true,
       lineCap: 'round',
       lineJoin: 'round',
@@ -147,6 +147,25 @@ export class PolygonAnnotation extends Annotation {
   get areaInMicroSquared(): number {
     const mpp = this.parent ? this.parent.micrometerPerPixel ?? 1 : 1;
     return this.area * (mpp ** 2);
+  }
+
+  // New getter: Calculate circumference (closed polygon)
+  get circumference(): number {
+    if (this.points.length < 2) return 0;
+    let sum = 0;
+    for (let i = 0; i < this.points.length; i++) {
+      const current = this.points[i]!;
+      const next = this.points[(i + 1) % this.points.length]!;
+      const dx = next.x - current.x;
+      const dy = next.y - current.y;
+      sum += Math.hypot(dx, dy);
+    }
+    return sum;
+  }
+
+  // New getter: Diameter of a circle with the same circumference
+  get diameter(): number {
+    return this.circumference / Math.PI;
   }
 
   addPoint(point: PointLike): AddPointResult {
@@ -200,7 +219,7 @@ export class ImageAnnotation {
       if (this.selectedAnnotation.points.length === 0) {
         this.annotations = this.annotations.filter(ann => ann !== this.selectedAnnotation);
         this.selectedAnnotation = undefined as any;
-        this.store.currentTool = null;
+        // this.store.currentTool = null;
       }
 
       this.redrawAnnotations();
@@ -306,6 +325,37 @@ export class ImageAnnotation {
     });
     console.log("Loaded annotations", imageAnn, json);
     return imageAnn;
+  }
+
+  // Getter: Smallest polygon area
+  get smallestPolygonArea(): number {
+    const areas = this.annotations.map(ann => ann.area);
+    return areas.length ? Math.min(...areas) : 0;
+  }
+
+  // Getter: Biggest polygon area
+  get biggestPolygonArea(): number {
+    const areas = this.annotations.map(ann => ann.area);
+    return areas.length ? Math.max(...areas) : 0;
+  }
+
+  // Getter: Smallest polygon circumference
+  get smallestPolygonCircumference(): number {
+    const circumferences = this.annotations.map(ann => ann.circumference);
+    return circumferences.length ? Math.min(...circumferences) : 0;
+  }
+
+  // Getter: Biggest polygon circumference
+  get biggestPolygonCircumference(): number {
+    const circumferences = this.annotations.map(ann => ann.circumference);
+    return circumferences.length ? Math.max(...circumferences) : 0;
+  }
+
+  // Getter: Wall thickness ratio = (a_b - a_s) / a_s, where a_b and a_s are biggest and smallest polygon areas respectively.
+  get wallThicknessRatio(): number {
+    const aSmall = this.smallestPolygonArea;
+    if (aSmall === 0) return 0;
+    return (this.biggestPolygonArea - aSmall) / aSmall;
   }
 }
 

@@ -103,51 +103,6 @@ export class KonvaImageViewer {
       }
     })
 
-    // // Add click event for annotation points
-    // this.stage.on('click', (e) => {
-    //   if (!store.currentTool) return;
-    //   const pointer = this.stage.getPointerPosition();
-    //   if (!pointer) return;
-    //   const x = (pointer.x - this.stage.x()) / this.stage.scaleX();
-    //   const y = (pointer.y - this.stage.y()) / this.stage.scaleY();
-    //   const pt = new Point(x, y);
-    //   currentAnnotationPoints.value.push(pt);
-    //   currentImageAnnotation.value?.redrawAnnotations(annotationLayer, currentAnnotationPoints.value, store.currentTool);
-    //   if (store.currentTool === 'line' && currentAnnotationPoints.value.length === 2) {
-    //     const ann = new LineAnnotation(currentAnnotationPoints.value[0], currentAnnotationPoints.value[1]);
-    //     currentImageAnnotation.value?.annotations.push(ann);
-    //     currentImageAnnotation.value?.redrawAnnotations(annotationLayer);
-    //     currentAnnotationPoints.value = [];
-    //     store.currentTool = null;
-    //     // Save annotations to file
-    //     saveAnnotations().catch(console.error);
-    //   }
-    // });
-
-    // // Mouse move to update preview (after first click)
-    // this.stage.on('mousemove', (e) => {
-    //   if (!store.currentTool || currentAnnotationPoints.value.length === 0) return;
-    //   const pointer = this.stage.getPointerPosition();
-    //   if (!pointer) return;
-    //   const x = (pointer.x - this.stage.x()) / this.stage.scaleX();
-    //   const y = (pointer.y - this.stage.y()) / this.stage.scaleY();
-    //   const previewPoints = [...currentAnnotationPoints.value];
-    //   previewPoints[previewPoints.length - 1] = new Point(x, y);
-    //   currentImageAnnotation.value?.redrawAnnotations(annotationLayer, previewPoints, store.currentTool);
-    // });
-
-    // // Listen for Enter key to finish polygon annotation
-    // document.addEventListener('keydown', (e: KeyboardEvent) => {
-    //   if (store.currentTool === 'polygon' && e.key === 'Enter' && currentAnnotationPoints.value.length > 2) {
-    //     const ann = new PolygonAnnotation([...currentAnnotationPoints.value]);
-    //     currentImageAnnotation.value?.annotations.push(ann);
-    //     currentImageAnnotation.value?.redrawAnnotations(annotationLayer);
-    //     currentAnnotationPoints.value = [];
-    //     store.currentTool = null;
-    //     saveAnnotations().catch(console.error);
-    //   }
-    // });
-
     document.addEventListener('keydown', (e: KeyboardEvent) => {
       this.processKeydown(e);
 
