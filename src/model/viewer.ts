@@ -1,6 +1,6 @@
 import { Point } from "2d-geometry";
 import Konva from "konva";
-import { ref, type Ref } from "vue";
+import { nextTick, ref, type Ref } from "vue";
 import { ImageAnnotation } from "./annotations";
 import { useGlobalStore } from "src/stores/global-store";
 import { useThrottleFn } from "@vueuse/core";
@@ -87,26 +87,19 @@ export class KonvaImageViewer {
 
     // Add double-click to reset view
     this.stage.on('dblclick', () => {
-      if (this.image) {
-        const imgElement = this.image.image() as HTMLImageElement;
-        const containerWidth = this.container.clientWidth || imgElement.width;
-        const containerHeight = this.container.clientHeight || imgElement.height;
-        const scaleFactor = Math.min(containerWidth / imgElement.width, containerHeight / imgElement.height);
-        this.stage.position({ x: 0, y: 0 });
-        this.stage.scale({ x: scaleFactor, y: scaleFactor });
-        this.stage.batchDraw();
-        this.currentZoom.value = scaleFactor;
-        this.currentPixel.value = { x: 0, y: 0 };
-      }
+      this.resetView();
     });
 
     // Update this.stage size on window resize
     window.addEventListener('resize', () => {
       console.log('Window resize event');
       if (this.container) {
-        this.stage.width(this.container.clientWidth);
-        this.stage.height(this.container.clientHeight);
-        this.stage.batchDraw();
+        nextTick(() => {
+          this.stage.width(this.container.clientWidth);
+          this.stage.height(this.container.clientHeight);
+          this.stage.batchDraw();
+          this.resetView();
+        }).catch(console.error);
       }
     });
 
@@ -181,6 +174,21 @@ export class KonvaImageViewer {
     this.annotationLayer.destroyChildren();
     this.imageAnnotation?.redrawAnnotations();
     this.stage.batchDraw();
+  }
+
+
+  resetView() {
+    if (this.image) {
+      const imgElement = this.image.image() as HTMLImageElement;
+      const containerWidth = this.container.clientWidth || imgElement.width;
+      const containerHeight = this.container.clientHeight || imgElement.height;
+      const scaleFactor = Math.min(containerWidth / imgElement.width, containerHeight / imgElement.height);
+      this.stage.position({ x: 0, y: 0 });
+      this.stage.scale({ x: scaleFactor, y: scaleFactor });
+      this.stage.batchDraw();
+      this.currentZoom.value = scaleFactor;
+      this.currentPixel.value = { x: 0, y: 0 };
+    }
   }
 
 
