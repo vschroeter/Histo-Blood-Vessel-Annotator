@@ -4,6 +4,7 @@
     <div class="header-section">
       <q-input dense v-model="store.folderPath" filled placeholder="Enter folder path" class="q-mb-sm" />
       <q-btn dense label="Load Files" @click="loadFiles" class="q-mb-md" />
+      <q-btn dense label="Export Annotations" @click="exportCSV" class="q-mb-md" />
     </div>
     <!-- Scrollable list section -->
     <div class="list-container">
@@ -24,6 +25,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import { useGlobalStore } from 'src/stores/global-store';
+import { ImageAnnotation } from 'src/model/annotations';
 
 interface FileItem {
   name: string;
@@ -58,6 +60,54 @@ function selectFile(file: string): void {
   store.currentImagePath = store.folderPath + '/' + file;
 }
 
+async function exportCSV(): Promise<void> {
+  if (!store.folderPath) return;
+
+  const rows: string[] = [];
+  const header = "filename,sample_id,microPerPixel,wallThicknessRatio,smallest_area,biggest_area,smallest_circumference,biggest_circumference,smallest_diameter,biggest_diameter".replace(',', ';');
+  rows.push(header);
+
+  for (const item of files.value) {
+    if (item.hasAnnotation) {
+      const annFilePath = store.folderPath + '/annotations/' + item.name + '_annotations.json';
+      try {
+        const annData: string = await window.electronAPI.loadAnnotationsData(annFilePath);
+        if (annData) {
+          const imageAnn = ImageAnnotation.fromJSON(annData);
+          let sampleId = "";
+          const match = item.name.match(/AA\s*(\d{4})_?/);
+          if (match) sampleId = match[1]!;
+
+          rows.push([
+            item.name,
+            sampleId,
+            imageAnn.micrometerPerPixel.toFixed(3).replace('.', ','),
+            imageAnn.wallThicknessRatio.toFixed(3).replace('.', ','),
+            imageAnn.smallestPolygonAreaMicro.toFixed(1).replace('.', ','),
+            imageAnn.biggestPolygonAreaMicro.toFixed(1).replace('.', ','),
+            imageAnn.smallestPolygonCircumferenceMicro.toFixed(1).replace('.', ','),
+            imageAnn.biggestPolygonCircumferenceMicro.toFixed(1).replace('.', ','),
+            imageAnn.smallestPolygonDiameterMicro.toFixed(1).replace('.', ','),
+            imageAnn.biggestPolygonDiameterMicro.toFixed(1).replace('.', ',')
+          ].join(";")); // Replace decimal separator for CSV
+        }
+      } catch (error) {
+        console.error(`Error processing ${item.name}:`, error);
+      }
+    }
+  }
+
+  const csvContent = rows.join("\n");
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "annotations_export.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 onMounted(async () => {
   if (store.folderPath) {
     await loadFiles();
@@ -86,6 +136,9 @@ watch(
 
 .header-section {
   flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .list-container {

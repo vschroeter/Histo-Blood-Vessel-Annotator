@@ -250,8 +250,8 @@ export class ImageAnnotation {
   filePath?: string;
 
   private _micrometerPerPixel?: number;
-  get micrometerPerPixel() {
-    return this._micrometerPerPixel;
+  get micrometerPerPixel(): number {
+    return this._micrometerPerPixel ?? 0.36;
   }
   set micrometerPerPixel(val: number | undefined) {
     if (val !== undefined) {
@@ -389,35 +389,78 @@ export class ImageAnnotation {
     return imageAnn;
   }
 
-  // Getter: Smallest polygon area
-  get smallestPolygonArea(): number {
+  // Pixel getters
+  get smallestPolygonAreaPixel(): number {
     const areas = this.annotations.map(ann => ann.area);
     return areas.length ? Math.min(...areas) : 0;
   }
 
-  // Getter: Biggest polygon area
-  get biggestPolygonArea(): number {
+  get biggestPolygonAreaPixel(): number {
     const areas = this.annotations.map(ann => ann.area);
     return areas.length ? Math.max(...areas) : 0;
   }
 
-  // Getter: Smallest polygon circumference
-  get smallestPolygonCircumference(): number {
+  get smallestPolygonCircumferencePixel(): number {
     const circumferences = this.annotations.map(ann => ann.circumference);
     return circumferences.length ? Math.min(...circumferences) : 0;
   }
 
-  // Getter: Biggest polygon circumference
-  get biggestPolygonCircumference(): number {
+  get biggestPolygonCircumferencePixel(): number {
     const circumferences = this.annotations.map(ann => ann.circumference);
     return circumferences.length ? Math.max(...circumferences) : 0;
   }
 
-  // Getter: Wall thickness ratio = (a_b - a_s) / a_s, where a_b and a_s are biggest and smallest polygon areas respectively.
   get wallThicknessRatio(): number {
-    const aSmall = this.smallestPolygonArea;
+    const aSmall = this.smallestPolygonAreaPixel;
     if (aSmall === 0) return 0;
-    return (this.biggestPolygonArea - aSmall) / aSmall;
+    return (this.biggestPolygonAreaPixel - aSmall) / aSmall;
   }
+
+  get smallestPolygonDiameterPixel(): number {
+    const diameters = this.annotations.map(ann => ann.diameter);
+    return diameters.length ? Math.min(...diameters) : 0;
+  }
+
+  get biggestPolygonDiameterPixel(): number {
+    const diameters = this.annotations.map(ann => ann.diameter);
+    return diameters.length ? Math.max(...diameters) : 0;
+  }
+
+
+  // Micro getters (converted to microns)
+  get smallestPolygonAreaMicro(): number {
+    const areas = this.annotations.map(ann => ann.areaInMicroSquared);
+    return areas.length ? Math.min(...areas) : 0;
+  }
+
+  get biggestPolygonAreaMicro(): number {
+    const areas = this.annotations.map(ann => ann.areaInMicroSquared);
+    return areas.length ? Math.max(...areas) : 0;
+  }
+
+  get smallestPolygonCircumferenceMicro(): number {
+    const circumferences = this.annotations.map(ann => ann.circumference * (this.micrometerPerPixel ?? 1));
+    return circumferences.length ? Math.min(...circumferences) : 0;
+  }
+
+  get biggestPolygonCircumferenceMicro(): number {
+    const circumferences = this.annotations.map(ann => ann.circumference * (this.micrometerPerPixel ?? 1));
+    return circumferences.length ? Math.max(...circumferences) : 0;
+  }
+
+  get smallestPolygonDiameterMicro(): number {
+    const diameters = this.annotations.map(ann => ann.diameter * (this.micrometerPerPixel ?? 1));
+    return diameters.length ? Math.min(...diameters) : 0;
+  }
+
+  get biggestPolygonDiameterMicro(): number {
+    const diameters = this.annotations.map(ann => ann.diameter * (this.micrometerPerPixel ?? 1));
+    return diameters.length ? Math.max(...diameters) : 0;
+  }
+
+
+
+
+
 }
 
