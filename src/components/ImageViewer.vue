@@ -27,6 +27,7 @@ const loading = ref(false);
 const containerRef = ref<HTMLDivElement | null>(null);
 
 let konvaImageViewer: KonvaImageViewer | null = null;
+const rightMouseDown = ref(false); // New flag for right button hold
 
 // For annotation drawing
 // const currentAnnotationPoints = ref<Point[]>([]);
@@ -46,6 +47,36 @@ onMounted(() => {
     konvaImageViewer = new KonvaImageViewer(containerRef.value);
     console.log('Konva stage initialized');
 
+    // New: Detect right mouse button press/release
+    konvaImageViewer.stage.on('mousedown', (e) => {
+      if (e.evt.button === 2 && store.currentTool === 'polygon') {
+        rightMouseDown.value = true;
+      }
+    });
+
+    konvaImageViewer.stage.on('mouseup', (e) => {
+      if (e.evt.button === 2 && store.currentTool === 'polygon') {
+        rightMouseDown.value = false;
+        imageAnnotation.value?.selectedAnnotation?.combinePoints();
+      }
+    });
+
+    konvaImageViewer.stage.on('mousemove', (e) => {
+      const pos = konvaImageViewer?.updateMousePosition();
+      if (!pos) {
+        return;
+      }
+      imageAnnotation.value?.hoverPoint(pos);
+      if (rightMouseDown.value && store.currentTool === 'polygon') {
+        imageAnnotation.value?.clickPoint(pos);
+      }
+      konvaImageViewer?.redrawThrottled().catch((error) => {
+        console.error('Error redrawing:', error);
+      });
+
+    });
+
+    // Retain existing click behavior for left-click
     konvaImageViewer.stage.on('click', (e) => {
       const pos = konvaImageViewer?.updateMousePosition();
       if (!pos) {
@@ -62,18 +93,6 @@ onMounted(() => {
       konvaImageViewer?.redrawThrottled().catch((error) => {
         console.error('Error redrawing:', error);
       });
-    });
-
-    konvaImageViewer.stage.on('mousemove', (e) => {
-      const pos = konvaImageViewer?.updateMousePosition();
-      if (!pos) {
-        return;
-      }
-      imageAnnotation.value?.hoverPoint(pos);
-      konvaImageViewer?.redrawThrottled().catch((error) => {
-        console.error('Error redrawing:', error);
-      });
-
     });
 
   }

@@ -100,7 +100,10 @@ export class PolygonAnnotation extends Annotation {
     this.color = 'blue';
   }
   render(layer: Konva.Layer): Konva.Shape {
-    const flat = this.points.reduce((acc, pt) => acc.concat([pt.x, pt.y]), [] as number[]);
+
+    const combinedPoints = this.getCombinedPoints()
+
+    const flat = combinedPoints.reduce((acc, pt) => acc.concat([pt.x, pt.y]), [] as number[]);
 
     if (flat.length >= 2) {
 
@@ -168,9 +171,65 @@ export class PolygonAnnotation extends Annotation {
     return this.circumference / Math.PI;
   }
 
+
+  perpendicularDistance(pt: Point, lineStart: Point, lineEnd: Point): number {
+    const dx = lineEnd.x - lineStart.x;
+    const dy = lineEnd.y - lineStart.y;
+    if (dx === 0 && dy === 0) {
+      return Math.hypot(pt.x - lineStart.x, pt.y - lineStart.y);
+    }
+    const numerator = Math.abs(dy * pt.x - dx * pt.y + lineEnd.x * lineStart.y - lineEnd.y * lineStart.x);
+    const denominator = Math.hypot(dx, dy);
+    return numerator / denominator;
+  }
+
+  rdp(points: Point[], tol: number): Point[] {
+    if (points.length < 3) return points;
+
+    let dmax = 0;
+    let index = 0;
+    const end = points.length - 1;
+
+    for (let i = 1; i < end; i++) {
+      const d = this.perpendicularDistance(points[i]!, points[0]!, points[end]!);
+      if (d > dmax) {
+        index = i;
+        dmax = d;
+      }
+    }
+
+    if (dmax > tol) {
+      const recResults1 = this.rdp(points.slice(0, index + 1), tol);
+      const recResults2 = this.rdp(points.slice(index, points.length), tol);
+      return recResults1.slice(0, -1).concat(recResults2);
+    } else {
+      return [points[0]!, points[end]!];
+    }
+  }
+
+  getCombinedPoints(points: Point[] = this.points): Point[] {
+    //
+    if (points.length < 3) return points;
+    const epsilon = 2; // adjust tolerance as needed
+
+    // Kee the last point as it is
+    const last = points[points.length - 1]!;
+
+    const combined = this.rdp(points.slice(0, -1), epsilon);
+
+    return combined.concat([last]);
+  }
+
+  combinePoints(): void {
+    this.points = this.getCombinedPoints();
+  }
+
+
   addPoint(point: PointLike): AddPointResult {
     this.points.push(new Point(point.x, point.y));
+
     this.calculateArea();
+    console.log('Points:', this.points.length);
     return "added";
   }
 
@@ -274,6 +333,9 @@ export class ImageAnnotation {
     if (event.key == "Enter") {
       if (this.selectedAnnotation) {
         this.selectedAnnotation.hoveredPoint = undefined;
+
+        this.selectedAnnotation.points = this.selectedAnnotation.getCombinedPoints();
+        console.log('Annotation complete', this.selectedAnnotation.points.length);
         this.selectedAnnotation = undefined as any;
         this.store.currentTool = null;
 
