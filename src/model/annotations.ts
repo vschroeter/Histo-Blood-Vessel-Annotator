@@ -152,7 +152,7 @@ export class PolygonAnnotation extends Annotation {
     return this.area * (mpp ** 2);
   }
 
-  // New getter: Calculate circumference (closed polygon)
+  // Calculate circumference (closed polygon)
   get circumference(): number {
     if (this.points.length < 2) return 0;
     let sum = 0;
@@ -166,9 +166,19 @@ export class PolygonAnnotation extends Annotation {
     return sum;
   }
 
-  // New getter: Diameter of a circle with the same circumference
-  get diameter(): number {
-    return this.circumference / Math.PI;
+  // The circumference of a circle with the same area
+  get circumferenceOptimal(): number {
+    const r = Math.sqrt(this.area / Math.PI);
+    return 2 * Math.PI * r;
+  }
+
+  // Diameter of a circle with the same circumference
+  get diameterOptimal(): number {
+    return this.circumferenceOptimal / Math.PI;
+  }
+
+  get radiusOptimal(): number {
+    return this.diameterOptimal / 2;
   }
 
 
@@ -229,7 +239,7 @@ export class PolygonAnnotation extends Annotation {
     this.points.push(new Point(point.x, point.y));
 
     this.calculateArea();
-    console.log('Points:', this.points.length);
+    // console.log('Points:', this.points.length);
     return "added";
   }
 
@@ -375,17 +385,21 @@ export class ImageAnnotation {
   }
 
   static fromJSON(json: string): ImageAnnotation {
-    const data = JSON.parse(json);
     const imageAnn = new ImageAnnotation();
-    imageAnn.filePath = data.filePath;
-    imageAnn.micrometerPerPixel = data.micrometerPerPixel;
-    imageAnn.annotations = (data.annotations ?? []).map((ann: any) => {
-      const polygon = new PolygonAnnotation();
-      polygon.parent = imageAnn;
-      polygon.loadJSON(ann);
-      return polygon;
-    });
-    console.log("Loaded annotations", imageAnn, json);
+    try {
+      const data = JSON.parse(json);
+      imageAnn.filePath = data.filePath;
+      imageAnn.micrometerPerPixel = data.micrometerPerPixel;
+      imageAnn.annotations = (data.annotations ?? []).map((ann: any) => {
+        const polygon = new PolygonAnnotation();
+        polygon.parent = imageAnn;
+        polygon.loadJSON(ann);
+        return polygon;
+      });
+      console.log("Loaded annotations for", imageAnn.filePath);
+    } catch (error) {
+      console.error('Error parsing annotations:', error);
+    }
     return imageAnn;
   }
 
@@ -417,12 +431,12 @@ export class ImageAnnotation {
   }
 
   get smallestPolygonDiameterPixel(): number {
-    const diameters = this.annotations.map(ann => ann.diameter);
+    const diameters = this.annotations.map(ann => ann.diameterOptimal);
     return diameters.length ? Math.min(...diameters) : 0;
   }
 
   get biggestPolygonDiameterPixel(): number {
-    const diameters = this.annotations.map(ann => ann.diameter);
+    const diameters = this.annotations.map(ann => ann.diameterOptimal);
     return diameters.length ? Math.max(...diameters) : 0;
   }
 
@@ -439,22 +453,22 @@ export class ImageAnnotation {
   }
 
   get smallestPolygonCircumferenceMicro(): number {
-    const circumferences = this.annotations.map(ann => ann.circumference * (this.micrometerPerPixel ?? 1));
+    const circumferences = this.annotations.map(ann => ann.circumferenceOptimal * (this.micrometerPerPixel ?? 1));
     return circumferences.length ? Math.min(...circumferences) : 0;
   }
 
   get biggestPolygonCircumferenceMicro(): number {
-    const circumferences = this.annotations.map(ann => ann.circumference * (this.micrometerPerPixel ?? 1));
+    const circumferences = this.annotations.map(ann => ann.circumferenceOptimal * (this.micrometerPerPixel ?? 1));
     return circumferences.length ? Math.max(...circumferences) : 0;
   }
 
   get smallestPolygonDiameterMicro(): number {
-    const diameters = this.annotations.map(ann => ann.diameter * (this.micrometerPerPixel ?? 1));
+    const diameters = this.annotations.map(ann => ann.diameterOptimal * (this.micrometerPerPixel ?? 1));
     return diameters.length ? Math.min(...diameters) : 0;
   }
 
   get biggestPolygonDiameterMicro(): number {
-    const diameters = this.annotations.map(ann => ann.diameter * (this.micrometerPerPixel ?? 1));
+    const diameters = this.annotations.map(ann => ann.diameterOptimal * (this.micrometerPerPixel ?? 1));
     return diameters.length ? Math.max(...diameters) : 0;
   }
 

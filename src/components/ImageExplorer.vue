@@ -64,7 +64,7 @@ async function exportCSV(): Promise<void> {
   if (!store.folderPath) return;
 
   const rows: string[] = [];
-  const header = "filename,sample_id,microPerPixel,wallThicknessRatio,smallest_area,biggest_area,smallest_circumference,biggest_circumference,smallest_diameter,biggest_diameter".replace(',', ';');
+  const header = "filename,sample_id,type,microPerPixel,wallThicknessRatio,smallest_area,biggest_area,smallest_circumference,biggest_circumference,smallest_diameter,biggest_diameter".replaceAll(',', ';');
   rows.push(header);
 
   for (const item of files.value) {
@@ -75,20 +75,25 @@ async function exportCSV(): Promise<void> {
         if (annData) {
           const imageAnn = ImageAnnotation.fromJSON(annData);
           let sampleId = "";
-          const match = item.name.match(/AA\s*(\d{4})_?/);
-          if (match) sampleId = match[1]!;
+          let type = "";
+          const match = item.name.match(/(..)\s*?(\d{4})_?/);
+          if (match) {
+            type = match[1]!;
+            sampleId = match[2]!;
+          }
 
           rows.push([
             item.name,
             sampleId,
-            imageAnn.micrometerPerPixel.toFixed(3).replace('.', ','),
-            imageAnn.wallThicknessRatio.toFixed(3).replace('.', ','),
-            imageAnn.smallestPolygonAreaMicro.toFixed(1).replace('.', ','),
-            imageAnn.biggestPolygonAreaMicro.toFixed(1).replace('.', ','),
-            imageAnn.smallestPolygonCircumferenceMicro.toFixed(1).replace('.', ','),
-            imageAnn.biggestPolygonCircumferenceMicro.toFixed(1).replace('.', ','),
-            imageAnn.smallestPolygonDiameterMicro.toFixed(1).replace('.', ','),
-            imageAnn.biggestPolygonDiameterMicro.toFixed(1).replace('.', ',')
+            type,
+            imageAnn.micrometerPerPixel.toFixed(3).replaceAll('.', ','),
+            imageAnn.wallThicknessRatio.toFixed(3).replaceAll('.', ','),
+            imageAnn.smallestPolygonAreaMicro.toFixed(1).replaceAll('.', ','),
+            imageAnn.biggestPolygonAreaMicro.toFixed(1).replaceAll('.', ','),
+            imageAnn.smallestPolygonCircumferenceMicro.toFixed(1).replaceAll('.', ','),
+            imageAnn.biggestPolygonCircumferenceMicro.toFixed(1).replaceAll('.', ','),
+            imageAnn.smallestPolygonDiameterMicro.toFixed(1).replaceAll('.', ','),
+            imageAnn.biggestPolygonDiameterMicro.toFixed(1).replaceAll('.', ',')
           ].join(";")); // Replace decimal separator for CSV
         }
       } catch (error) {

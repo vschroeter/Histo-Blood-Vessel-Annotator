@@ -28,8 +28,8 @@
           <td>{{ index + 1 }}</td>
           <td>{{ ann.area.toFixed(1) }}</td>
           <td>{{ ann.areaInMicroSquared.toFixed(1) }}</td>
-          <td>{{ (ann.circumference * mpp).toFixed(1) }}</td>
-          <td>{{ (ann.diameter * mpp).toFixed(1) }}</td>
+          <td>{{ (ann.circumferenceOptimal * mpp).toFixed(1) }}</td>
+          <td>{{ (ann.diameterOptimal * mpp).toFixed(1) }}</td>
           <td>
             <q-btn icon="delete" flat round @click="deleteAnnotation(ann)" />
           </td>
