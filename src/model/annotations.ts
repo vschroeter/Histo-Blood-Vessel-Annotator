@@ -93,7 +93,7 @@ export class PolygonAnnotation extends Annotation {
   }
   // Add a reactive area property
   // area: Ref<number> = ref(0);
-  area: number = 0;
+  areaPixel: number = 0;
 
   constructor() {
     super();
@@ -134,7 +134,7 @@ export class PolygonAnnotation extends Annotation {
   // Calculate area using the shoelace formula
   private calculateArea(): void {
     if (this.points.length < 3) {
-      this.area = 0;
+      this.areaPixel = 0;
       return;
     }
     let sum = 0;
@@ -143,17 +143,17 @@ export class PolygonAnnotation extends Annotation {
       const next = this.points[(i + 1) % this.points.length]!;
       sum += cur.x * next.y - cur.y * next.x;
     }
-    this.area = Math.abs(sum / 2);
+    this.areaPixel = Math.abs(sum / 2);
   }
 
   // Change areaInMicroSquared to use the parent's micrometerPerPixel property
   get areaInMicroSquared(): number {
     const mpp = this.parent ? this.parent.micrometerPerPixel ?? 1 : 1;
-    return this.area * (mpp ** 2);
+    return this.areaPixel * (mpp ** 2);
   }
 
   // Calculate circumference (closed polygon)
-  get circumference(): number {
+  get circumferenceBasedOnLength(): number {
     if (this.points.length < 2) return 0;
     let sum = 0;
     for (let i = 0; i < this.points.length; i++) {
@@ -167,18 +167,24 @@ export class PolygonAnnotation extends Annotation {
   }
 
   // The circumference of a circle with the same area
-  get circumferenceOptimal(): number {
-    const r = Math.sqrt(this.area / Math.PI);
+  get circumferenceBasedOnArea(): number {
+    const r = Math.sqrt(this.areaPixel / Math.PI);
     return 2 * Math.PI * r;
   }
 
   // Diameter of a circle with the same circumference
-  get diameterOptimal(): number {
-    return this.circumferenceOptimal / Math.PI;
+  get diameterBasedOnArea(): number {
+    return this.circumferenceBasedOnArea / Math.PI;
   }
 
-  get radiusOptimal(): number {
-    return this.diameterOptimal / 2;
+  get radiusBasedOnArea(): number {
+    return this.diameterBasedOnArea / 2;
+  }
+
+  get areaBasedOnCircumference(): number {
+    const c = this.circumferenceBasedOnLength;
+    const r = c / (2 * Math.PI);
+    return Math.PI * r * r;
   }
 
 
@@ -220,7 +226,7 @@ export class PolygonAnnotation extends Annotation {
   getCombinedPoints(points: Point[] = this.points): Point[] {
     //
     if (points.length < 3) return points;
-    const epsilon = 2; // adjust tolerance as needed
+    const epsilon = 3; // adjust tolerance as needed
 
     // Kee the last point as it is
     const last = points[points.length - 1]!;
@@ -350,7 +356,7 @@ export class ImageAnnotation {
         this.store.currentTool = null;
 
         // Sort the annotations by area
-        this.annotations.sort((a, b) => b.area - a.area);
+        this.annotations.sort((a, b) => b.areaPixel - a.areaPixel);
       }
     }
 
@@ -369,7 +375,7 @@ export class ImageAnnotation {
     if (this.layer) {
       this.layer.destroyChildren();
       this.annotations.forEach(ann => ann.render(this.layer!));
-      this.layer.batchDraw();
+      // this.layer.batchDraw();
     }
   }
 
@@ -403,74 +409,206 @@ export class ImageAnnotation {
     return imageAnn;
   }
 
-  // Pixel getters
-  get smallestPolygonAreaPixel(): number {
-    const areas = this.annotations.map(ann => ann.area);
-    return areas.length ? Math.min(...areas) : 0;
+
+  get biggestAnnotation(): PolygonAnnotation | undefined {
+    return this.annotations.length > 0 ? this.annotations.reduce((largest, ann) =>
+      ann.areaPixel > largest.areaPixel ? ann : largest
+    ) : undefined;
   }
 
-  get biggestPolygonAreaPixel(): number {
-    const areas = this.annotations.map(ann => ann.area);
-    return areas.length ? Math.max(...areas) : 0;
+  get smallestAnnotation(): PolygonAnnotation | undefined {
+    return this.annotations.length > 0 ? this.annotations.reduce((smallest, ann) =>
+      ann.areaPixel < smallest.areaPixel ? ann : smallest
+    ) : undefined;
   }
 
-  get smallestPolygonCircumferencePixel(): number {
-    const circumferences = this.annotations.map(ann => ann.circumference);
-    return circumferences.length ? Math.min(...circumferences) : 0;
+  // Outer circumference
+  get outerCircumference(): number {
+    const biggest = this.biggestAnnotation;
+    return biggest ? biggest.circumferenceBasedOnLength : 0;
   }
 
-  get biggestPolygonCircumferencePixel(): number {
-    const circumferences = this.annotations.map(ann => ann.circumference);
-    return circumferences.length ? Math.max(...circumferences) : 0;
+  get wallAreaPixel(): number {
+    if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+
+    const outerAreaPixel = this.biggestAnnotation.areaPixel;
+    const innerAreaPixel = this.smallestAnnotation.areaPixel;
+    return outerAreaPixel - innerAreaPixel
   }
 
-  get wallThicknessRatio(): number {
-    const aSmall = this.smallestPolygonAreaPixel;
+  get outerCircleAreaCalculated(): number {
+    if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+
+    // Assumption: The outer wall can be transformed into a circle with the same circumference
+    const outerCircumference = this.outerCircumference;
+    const outerCircleRadius = outerCircumference / (2 * Math.PI);
+    const outerCircleArea = Math.PI * outerCircleRadius * outerCircleRadius;
+    return outerCircleArea;
+  }
+
+  get outerCircleAreaCalculatedInMicroSquared(): number {
+    return this.outerCircleAreaCalculated * (this.micrometerPerPixel ?? 1) ** 2;
+  }
+
+  get outerCircleDiameterBasedOnCalculatedArea(): number {
+    return Math.sqrt(this.outerCircleAreaCalculated / Math.PI) * 2;
+  }
+
+  get averageWallThickness(): number {
+    if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+
+    // Assumption: The outer wall can be transformed into a circle with the same circumference
+    const outerCircumference = this.outerCircumference;
+    const outerCircleRadius = outerCircumference / (2 * Math.PI);
+    const outerCircleArea = this.outerCircleAreaCalculated;
+
+    // Assumption: Wall thickness stays always the same, no matter how the vessel is crumbled
+    const innerArea = outerCircleArea - this.wallAreaPixel;
+    const innerCircleRadius = Math.sqrt(innerArea / Math.PI);
+
+    return outerCircleRadius - innerCircleRadius;
+  }
+
+  // get wallAreaCalculated() {
+
+  //   const aSmall = this.innerAreaCalculated;
+  //   const aBig = this.outerCircleAreaCalculated;
+  //   let area = aBig - aSmall;
+
+  //   area = Math.PI * outerCircleRadius * outerCircleRadius - Math.PI * innerCircleRadius * innerCircleRadius;
+  //   area = Math.PI * outerCircleRadius ** 2 - Math.PI * (outerCircleArea - outerAreaPixel - innerAreaPixel) / Math.PI);
+  //   area = outerCircleArea - (outerCircleArea - outerAreaPixel - innerAreaPixel) ;
+  // }
+
+  get averageWallThicknessInMicro(): number {
+    return this.averageWallThickness * (this.micrometerPerPixel ?? 1);
+  }
+
+  get innerAreaCalculated(): number {
+
+    if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+
+    const outerCircleArea = this.outerCircleAreaCalculated;
+    const outerCircleDiameter = this.outerCircleDiameterBasedOnCalculatedArea;
+    const outerCircleRadius = outerCircleDiameter / 2;
+    const averageWallThickness = this.averageWallThickness;
+
+    const innerCircleRadius = outerCircleRadius - averageWallThickness;
+    const innerCircleArea = Math.PI * innerCircleRadius * innerCircleRadius;
+    return innerCircleArea;
+
+    // if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+    // // Assumption: The outer wall can be transformed into a circle with the same circumference
+    // const outerCircleArea = this.outerCircleAreaCalculated;
+
+    // // Assumption: Wall thickness stays always the same, no matter how the vessel is crumbled
+    // const innerArea = outerCircleArea - this.wallAreaPixel;
+    // return innerArea;
+  }
+
+  get innerAreaCalculatedEasy() {
+    if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+
+    // Assumption: The outer wall can be transformed into a circle with the same circumference
+    const outerCircleArea = this.outerCircleAreaCalculated;
+
+    // Assumption: Wall thickness stays always the same, no matter how the vessel is crumbled
+    const innerArea = outerCircleArea - this.wallAreaPixel;
+    return innerArea;
+  }
+
+  get innerAreaCalculatedInMicroSquared(): number {
+    return this.innerAreaCalculated * (this.micrometerPerPixel ?? 1) ** 2;
+  }
+
+  get mediaLumenRatio(): number {
+    const aSmall = this.innerAreaCalculated;
+    const aBig = this.outerCircleAreaCalculated;
+
     if (aSmall === 0) return 0;
-    return (this.biggestPolygonAreaPixel - aSmall) / aSmall;
+
+    return (aBig - aSmall) / aSmall;
+
+    // Wandfläche / (ideale große Fläche - tatsächliche Wandfläche)
   }
 
-  get smallestPolygonDiameterPixel(): number {
-    const diameters = this.annotations.map(ann => ann.diameterOptimal);
-    return diameters.length ? Math.min(...diameters) : 0;
+  get outerCalculatedDiameterInMicro(): number {
+    return Math.sqrt(this.outerCircleAreaCalculatedInMicroSquared / Math.PI) * 2;
   }
+  get innerCalculatedDiameterInMicro(): number {
 
-  get biggestPolygonDiameterPixel(): number {
-    const diameters = this.annotations.map(ann => ann.diameterOptimal);
-    return diameters.length ? Math.max(...diameters) : 0;
+    return Math.sqrt(this.innerAreaCalculatedInMicroSquared / Math.PI) * 2;
   }
 
 
-  // Micro getters (converted to microns)
-  get smallestPolygonAreaMicro(): number {
-    const areas = this.annotations.map(ann => ann.areaInMicroSquared);
-    return areas.length ? Math.min(...areas) : 0;
-  }
+  // // Pixel getters
+  // get smallestPolygonAreaPixel(): number {
+  //   const areas = this.annotations.map(ann => ann.area);
+  //   return areas.length ? Math.min(...areas) : 0;
+  // }
 
-  get biggestPolygonAreaMicro(): number {
-    const areas = this.annotations.map(ann => ann.areaInMicroSquared);
-    return areas.length ? Math.max(...areas) : 0;
-  }
+  // get biggestPolygonAreaPixel(): number {
+  //   const areas = this.annotations.map(ann => ann.area);
+  //   return areas.length ? Math.max(...areas) : 0;
+  // }
 
-  get smallestPolygonCircumferenceMicro(): number {
-    const circumferences = this.annotations.map(ann => ann.circumferenceOptimal * (this.micrometerPerPixel ?? 1));
-    return circumferences.length ? Math.min(...circumferences) : 0;
-  }
+  // get smallestPolygonCircumferencePixel(): number {
+  //   const circumferences = this.annotations.map(ann => ann.circumferenceBasedOnLength);
+  //   return circumferences.length ? Math.min(...circumferences) : 0;
+  // }
 
-  get biggestPolygonCircumferenceMicro(): number {
-    const circumferences = this.annotations.map(ann => ann.circumferenceOptimal * (this.micrometerPerPixel ?? 1));
-    return circumferences.length ? Math.max(...circumferences) : 0;
-  }
+  // get biggestPolygonCircumferencePixel(): number {
+  //   const circumferences = this.annotations.map(ann => ann.circumferenceBasedOnLength);
+  //   return circumferences.length ? Math.max(...circumferences) : 0;
+  // }
 
-  get smallestPolygonDiameterMicro(): number {
-    const diameters = this.annotations.map(ann => ann.diameterOptimal * (this.micrometerPerPixel ?? 1));
-    return diameters.length ? Math.min(...diameters) : 0;
-  }
+  // get wallThicknessRatio(): number {
+  //   const aSmall = this.smallestPolygonAreaPixel;
+  //   if (aSmall === 0) return 0;
+  //   return (this.biggestPolygonAreaPixel - aSmall) / aSmall;
+  // }
 
-  get biggestPolygonDiameterMicro(): number {
-    const diameters = this.annotations.map(ann => ann.diameterOptimal * (this.micrometerPerPixel ?? 1));
-    return diameters.length ? Math.max(...diameters) : 0;
-  }
+  // get smallestPolygonDiameterPixel(): number {
+  //   const diameters = this.annotations.map(ann => ann.diameterBasedOnArea);
+  //   return diameters.length ? Math.min(...diameters) : 0;
+  // }
+
+  // get biggestPolygonDiameterPixel(): number {
+  //   const diameters = this.annotations.map(ann => ann.diameterBasedOnArea);
+  //   return diameters.length ? Math.max(...diameters) : 0;
+  // }
+
+
+  // // Micro getters (converted to microns)
+  // get smallestPolygonAreaMicro(): number {
+  //   const areas = this.annotations.map(ann => ann.areaInMicroSquared);
+  //   return areas.length ? Math.min(...areas) : 0;
+  // }
+
+  // get biggestPolygonAreaMicro(): number {
+  //   const areas = this.annotations.map(ann => ann.areaInMicroSquared);
+  //   return areas.length ? Math.max(...areas) : 0;
+  // }
+
+  // get smallestPolygonCircumferenceMicro(): number {
+  //   const circumferences = this.annotations.map(ann => ann.circumferenceBasedOnArea * (this.micrometerPerPixel ?? 1));
+  //   return circumferences.length ? Math.min(...circumferences) : 0;
+  // }
+
+  // get biggestPolygonCircumferenceMicro(): number {
+  //   const circumferences = this.annotations.map(ann => ann.circumferenceBasedOnArea * (this.micrometerPerPixel ?? 1));
+  //   return circumferences.length ? Math.max(...circumferences) : 0;
+  // }
+
+  // get smallestPolygonDiameterMicro(): number {
+  //   const diameters = this.annotations.map(ann => ann.diameterBasedOnArea * (this.micrometerPerPixel ?? 1));
+  //   return diameters.length ? Math.min(...diameters) : 0;
+  // }
+
+  // get biggestPolygonDiameterMicro(): number {
+  //   const diameters = this.annotations.map(ann => ann.diameterBasedOnArea * (this.micrometerPerPixel ?? 1));
+  //   return diameters.length ? Math.max(...diameters) : 0;
+  // }
 
 
 

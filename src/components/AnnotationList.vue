@@ -26,10 +26,10 @@
       <tbody>
         <tr v-for="(ann, index) in polygonAnnotations" :key="index">
           <td>{{ index + 1 }}</td>
-          <td>{{ ann.area.toFixed(1) }}</td>
+          <td>{{ ann.areaPixel.toFixed(1) }}</td>
           <td>{{ ann.areaInMicroSquared.toFixed(1) }}</td>
-          <td>{{ (ann.circumferenceOptimal * mpp).toFixed(1) }}</td>
-          <td>{{ (ann.diameterOptimal * mpp).toFixed(1) }}</td>
+          <td>{{ (ann.circumferenceBasedOnArea * mpp).toFixed(1) }}</td>
+          <td>{{ (ann.diameterBasedOnArea * mpp).toFixed(1) }}</td>
           <td>
             <q-btn icon="delete" flat round @click="deleteAnnotation(ann)" />
           </td>
@@ -38,7 +38,15 @@
     </table>
     <p v-else>No polygon annotations yet.</p>
     <div v-if="store.currentImageAnnotation" class="ratio-info">
-      Wall Thickness Ratio: {{ store.currentImageAnnotation.wallThicknessRatio.toFixed(3) }}
+      <!-- <p>Outer Area (calculated): {{ store.currentImageAnnotation.outerCircleAreaCalculatedInMicroSquared.toFixed(3) }}</p>
+      <p>Inner Area (calculated): {{ store.currentImageAnnotation.innerAreaCalculatedInMicroSquared.toFixed(3) }}</p> -->
+
+      <p>Calculated Outer Diameter (µm): {{ store.currentImageAnnotation.outerCalculatedDiameterInMicro.toFixed(3) }}
+      </p>
+      <p>Calculated Inner Diameter (µm): {{ store.currentImageAnnotation.innerCalculatedDiameterInMicro.toFixed(3) }}
+      </p>
+      <p>Average Wall Thickness (µm): {{ store.currentImageAnnotation.averageWallThicknessInMicro.toFixed(3) }}</p>
+      <p>Media Lumen Ratio: {{ store.currentImageAnnotation.mediaLumenRatio.toFixed(3) }}</p>
     </div>
   </div>
 </template>
