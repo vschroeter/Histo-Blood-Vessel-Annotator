@@ -77,10 +77,10 @@ async function exportCSV(): Promise<void> {
           const imageAnn = ImageAnnotation.fromJSON(annData);
           let sampleId = "";
           let type = "";
-          const match = item.name.match(/(..)\s*?(\d{4})_?/);
+          const match = item.name.match(/[ _](\d{4})_/); // Fixed from (..)\s*?(\d{4})_? to match the new format
           if (match) {
-            type = match[1]!;
-            sampleId = match[2]!;
+            type = item.name.includes("AA") ? "AA" : "MA";
+            sampleId = match[1]!;
           }
 
           rows.push([
