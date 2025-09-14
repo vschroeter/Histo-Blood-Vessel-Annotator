@@ -65,7 +65,7 @@ async function exportCSV(): Promise<void> {
 
   const rows: string[] = [];
   // const header = "filename,sample_id,type,microPerPixel,wallThicknessRatio,smallest_area,biggest_area,smallest_circumference,biggest_circumference,smallest_diameter,biggest_diameter".replaceAll(',', ';');
-  const header = "filename,sample_id,type,microPerPixel,mediaLumenRatio,averageWallThicknessInMicro,outerCalculatedDiameterInMicro,innerCalculatedDiameterInMicro".replaceAll(',', ';');
+  const header = "filename,sample_id,type,microPerPixel,mediaLumenRatio,averageWallThicknessInMicro,outerCalculatedDiameterInMicro,innerCalculatedDiameterInMicro,wallThicknessVariability,shortestLineAnnotationLengthInMicro,longestLineAnnotationLengthInMicro".replaceAll(',', ';');
   rows.push(header);
 
   for (const item of files.value) {
@@ -92,6 +92,9 @@ async function exportCSV(): Promise<void> {
             imageAnn.averageWallThicknessInMicro.toFixed(3).replaceAll('.', ','),
             imageAnn.outerCalculatedDiameterInMicro.toFixed(3).replaceAll('.', ','),
             imageAnn.innerCalculatedDiameterInMicro.toFixed(3).replaceAll('.', ','),
+            imageAnn.wallThicknessVariability.toFixed(3).replaceAll('.', ','),
+            imageAnn.shortestLineAnnotationLength.toFixed(3).replaceAll('.', ','),
+            imageAnn.longestLineAnnotationLength.toFixed(3).replaceAll('.', ','),
 
             // imageAnn.smallestPolygonAreaMicro.toFixed(1).replaceAll('.', ','),
             // imageAnn.biggestPolygonAreaMicro.toFixed(1).replaceAll('.', ','),
