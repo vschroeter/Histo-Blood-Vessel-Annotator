@@ -6,6 +6,8 @@
         :class="{ active: store.currentTool === 'line' }" /> -->
       <q-btn icon="polymer" flat round tooltip="Polygon Annotation Tool - press Enter to finish"
         @click="selectTool('polygon')" :class="{ active: store.currentTool === 'polygon' }" />
+      <q-btn icon="arrow_outward" flat round tooltip="Line Annotation Tool - select two points"
+        @click="selectTool('line')" :class="{ active: store.currentTool === 'line' }" />
     </div>
     <!-- Updated input for micrometerPerPixel -->
     <q-input v-if="store.currentImageAnnotation" v-model.number="store.currentImageAnnotation.micrometerPerPixel"
@@ -48,12 +50,35 @@
       <p>Average Wall Thickness (µm): {{ store.currentImageAnnotation.averageWallThicknessInMicro.toFixed(3) }}</p>
       <p>Media Lumen Ratio: {{ store.currentImageAnnotation.mediaLumenRatio.toFixed(3) }}</p>
     </div>
+
+    <h4>Line Annotations</h4>
+    <table v-if="lineAnnotations.length" class="annotation-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Length (µm)</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(ann, index) in lineAnnotations" :key="index">
+          <td>{{ index + 1 }}</td>
+          <td>{{ (ann.length * mpp).toFixed(1) }}</td>
+          <td>
+            <q-btn icon="delete" flat round @click="deleteAnnotation(ann)" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p v-else>No line annotations yet.</p>
   </div>
+
 </template>
 
 <script setup lang="ts">
+import { type LineAnnotation, type PolygonAnnotation } from 'src/model/annotations';
 import { useGlobalStore } from 'src/stores/global-store';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 
 const store = useGlobalStore();
 
@@ -62,7 +87,7 @@ function selectTool(tool: 'line' | 'polygon') {
 }
 
 watch(() => store.currentTool, (tool) => {
-  if (tool !== "polygon") {
+  if (tool !== "polygon" && tool !== "line") {
     store.currentTool = "polygon"
   }
 });
@@ -70,9 +95,66 @@ watch(() => store.currentTool, (tool) => {
 
 function deleteAnnotation(ann: any) {
   store.currentImageAnnotation?.removeAnnotation(ann);
+  updateAnnotations();
 }
 
-const polygonAnnotations = computed(() => store.currentImageAnnotation?.annotations ?? []);
+
+const polygonAnnotations = ref<PolygonAnnotation[]>([]);
+const lineAnnotations = ref<LineAnnotation[]>([]);
+
+// const annotations = computed(() => store.currentImageAnnotation?.annotations ?? []);
+
+// const polygonAnnotations = computed(() => annotations.value.filter(ann => ann instanceof PolygonAnnotation));
+// const lineAnnotations = computed(() => annotations.value.filter(ann => ann instanceof LineAnnotation));
+
+// watch(() => store.currentImageAnnotation?.updateValue, () => {
+//   console.log('annotations changed', store.currentImageAnnotation?.annotations);
+//   polygonAnnotations.value = store.currentImageAnnotation?.polygonAnnotations ?? [];
+//   lineAnnotations.value = store.currentImageAnnotation?.lineAnnotations ?? [];
+// });
+
+function updateAnnotations() {
+  polygonAnnotations.value = store.currentImageAnnotation?.polygonAnnotations ?? [];
+  lineAnnotations.value = store.currentImageAnnotation?.lineAnnotations ?? [];
+}
+
+onMounted(() => {
+
+
+  let stopListening: (() => void) | null = null;
+
+  const attachListener = () => {
+    stopListener();
+    const imgAnn = store.currentImageAnnotation;
+    if (imgAnn) {
+      stopListening = imgAnn.onUpdate(() => {
+        updateAnnotations();
+      });
+      // initial fill
+      updateAnnotations();
+    }
+  };
+
+  const stopListener = () => {
+    if (stopListening) {
+      stopListening();
+      stopListening = null;
+    }
+  };
+
+  watch(() => store.currentImageAnnotation, () => {
+    console.log('currentImageAnnotation changed', store.currentImageAnnotation);
+    attachListener();
+  }, { immediate: true });
+
+  onBeforeUnmount(() => {
+    stopListener();
+  });
+});
+
+
+// const polygonAnnotations = computed(() => store.currentImageAnnotation?.polygonAnnotations ?? []);
+// const lineAnnotations = computed(() => store.currentImageAnnotation?.lineAnnotations ?? []);
 
 // Get micrometer per pixel from the current image annotation or default to 1
 const mpp = computed(() => store.currentImageAnnotation?.micrometerPerPixel ?? 1);

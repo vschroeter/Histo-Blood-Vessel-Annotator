@@ -33,7 +33,12 @@ const rightMouseDown = ref(false); // New flag for right button hold
 // const currentAnnotationPoints = ref<Point[]>([]);
 
 // Reactive annotation object for current image
-const imageAnnotation = computed(() => konvaImageViewer?.imageAnnotation);
+// const imageAnnotation = computed(() => konvaImageViewer?.imageAnnotation);
+const imageAnnotation = ref<ImageAnnotation | null>(null);
+
+watch(() => store.currentImageAnnotation, () => {
+  imageAnnotation.value = store.currentImageAnnotation;
+});
 
 ////////////////////////////////////////////////////////////////////////////
 // #region Mounting Stage
@@ -57,7 +62,7 @@ onMounted(() => {
     konvaImageViewer.stage.on('mouseup', (e) => {
       if (e.evt.button === 2 && store.currentTool === 'polygon') {
         rightMouseDown.value = false;
-        imageAnnotation.value?.selectedAnnotation?.combinePoints();
+        imageAnnotation.value?.selectedAnnotation?.finalizePoints();
       }
     });
 
@@ -82,6 +87,8 @@ onMounted(() => {
       if (!pos) {
         return;
       }
+
+      console.log('click', pos, imageAnnotation.value?.selectedAnnotation);
 
       // Detect whether right click or left click
       if (e.evt.button === 2) {

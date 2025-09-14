@@ -1,4 +1,6 @@
 import Konva from 'konva';
+import mitt from 'mitt';
+type ImageAnnotationEvents = { update: undefined };
 import { type PointLike, Point } from "2d-geometry";
 import { useGlobalStore } from 'src/stores/global-store';
 import type { Raw } from 'vue';
@@ -18,12 +20,14 @@ type AddPointResult = "added" | "complete" | "ignored";
 export abstract class Annotation implements Renderable {
 
   color: string = 'black';
-
+  parent: ImageAnnotation;
   hoveredPoint?: Point | undefined;
 
+  type: 'polygon' | 'line' = 'polygon';
   points: Point[] = [];
 
-  constructor() {
+  constructor(parent: ImageAnnotation) {
+    this.parent = parent;
   }
 
   abstract render(layer: Konva.Layer): Konva.Shape;
@@ -36,6 +40,15 @@ export abstract class Annotation implements Renderable {
   abstract addPoint(point: PointLike): AddPointResult;
 
   abstract removeLastPoint(): void;
+
+  finalizePoints(): void {
+    // By default, do nothing
+  }
+
+  loadJSON(ann: any) {
+    this.points = ann.points.map((pt: any) => new Point(pt.x, pt.y));
+    this.color = ann.color;
+  }
 
 }
 
@@ -82,22 +95,107 @@ export abstract class Annotation implements Renderable {
 
 // }
 
+export class LineAnnotation extends Annotation {
+
+  // start?: Point;
+  // end?: Point;
+
+  get start(): Point | undefined {
+    return this.points[0];
+  }
+  set start(point: Point) {
+    if (!this.points[0]) {
+      this.points.push(point);
+    } else {
+      this.points[0] = point;
+    }
+  }
+
+  get end(): Point | undefined {
+    return this.points[1];
+  }
+  set end(point: Point) {
+    if (!this.points[1]) {
+      this.points.push(point);
+    } else {
+      this.points[1] = point;
+    }
+  }
+
+  get length(): number {
+    if (!this.start || !this.end) return 0;
+    return Math.hypot(this.start.x - this.end.x, this.start.y - this.end.y);
+  }
+
+  constructor(parent: ImageAnnotation) {
+    super(parent);
+    this.color = 'yellow';
+    this.type = 'line';
+
+  }
+
+  render(layer: Konva.Layer): Konva.Shape {
+
+    if (!this.start) return new Konva.Line();
+
+    const points: number[] = [];
+
+    if (this.start) {
+      points.push(this.start.x, this.start.y);
+    }
+
+    if (this.end) {
+      points.push(this.end.x, this.end.y);
+    }
+
+    if (this.hoveredPoint) {
+      points.push(this.hoveredPoint.x, this.hoveredPoint.y);
+    }
+
+    const line = new Konva.Line({
+      points: points,
+      stroke: this.color,
+      strokeWidth: 12,
+    });
+
+    // TODO: Add two orthogonal lines at the start and end points for orientation
+
+    layer.add(line);
+    return line;
+  }
+
+  addPoint(point: PointLike): AddPointResult {
+    if (!this.start) {
+      this.start = new Point(point.x, point.y);
+      return "added";
+    } else if (!this.end) {
+      this.end = new Point(point.x, point.y);
+      return "complete";
+    }
+    return "ignored";
+  }
+
+  removeLastPoint(): void {
+    if (this.points.length === 0) return;
+    this.points = this.points.slice(0, -1);
+  }
+}
+
 export class PolygonAnnotation extends Annotation {
   // New parent property to reference the ImageAnnotation instance
-  parent?: ImageAnnotation;
 
-  loadJSON(ann: any) {
-    this.points = ann.points.map((pt: any) => new Point(pt.x, pt.y));
-    this.color = ann.color;
+  override loadJSON(ann: any) {
+    super.loadJSON(ann);
     this.calculateArea();
   }
   // Add a reactive area property
   // area: Ref<number> = ref(0);
   areaPixel: number = 0;
 
-  constructor() {
-    super();
+  constructor(parent: ImageAnnotation) {
+    super(parent);
     this.color = 'blue';
+    this.type = 'polygon';
   }
   render(layer: Konva.Layer): Konva.Shape {
 
@@ -254,6 +352,10 @@ export class PolygonAnnotation extends Annotation {
     this.calculateArea();
   }
 
+  override finalizePoints(): void {
+    this.points = this.getCombinedPoints();
+  }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -264,6 +366,8 @@ export class ImageAnnotation {
   static lastMicrometerPerPixel: number = 1; // default value
 
   filePath?: string;
+
+  updateValue = 0;
 
   private _micrometerPerPixel?: number;
   get micrometerPerPixel(): number {
@@ -276,14 +380,35 @@ export class ImageAnnotation {
     }
   }
 
-  annotations: PolygonAnnotation[] = [];
-  selectedAnnotation?: PolygonAnnotation;
+  // annotations: PolygonAnnotation[] = [];
+  annotations: Annotation[] = [];
+  // selectedAnnotation?: PolygonAnnotation;
+  selectedAnnotation?: Annotation;
   store = markRaw(useGlobalStore());
   layer?: Raw<Konva.Layer>;
+  private emitter = mitt<ImageAnnotationEvents>();
 
   constructor() {
     // When a new ImageAnnotation is created, copy the last used micrometerPerPixel value:
     this.micrometerPerPixel = ImageAnnotation.lastMicrometerPerPixel;
+  }
+
+  onUpdate(handler: () => void): () => void {
+    const proxy = () => handler();
+    this.emitter.on('update', proxy);
+    return () => this.emitter.off('update', proxy);
+  }
+
+  private emitUpdate(): void {
+    this.emitter.emit('update');
+  }
+
+  get polygonAnnotations(): PolygonAnnotation[] {
+    return this.annotations.filter(ann => ann instanceof PolygonAnnotation);
+  }
+
+  get lineAnnotations(): LineAnnotation[] {
+    return this.annotations.filter(ann => ann instanceof LineAnnotation);
   }
 
   rightClickPoint(point: PointLike): void {
@@ -298,26 +423,31 @@ export class ImageAnnotation {
       }
 
       this.redrawAnnotations();
+      this.emitUpdate();
     }
   }
 
   clickPoint(point: PointLike): void {
-
+    console.log('clickPoint', point, this.selectedAnnotation);
     // If there is no selected annotation, create a new one with the selected tool
     if (!this.selectedAnnotation) {
       const tool = this.store.currentTool;
       console.log('Creating annotation', tool);
 
-      // if (tool === 'line') {
-      //   this.selectedAnnotation = new LineAnnotation();
-      //   this.annotations.push(this.selectedAnnotation);
-      // } else
-      if (tool === 'polygon') {
-        this.selectedAnnotation = new PolygonAnnotation();
-        // Assign the parent reference
-        this.selectedAnnotation.parent = this;
+      let created = false;
+      if (tool === 'line') {
+        this.selectedAnnotation = new LineAnnotation(this);
         this.annotations.push(this.selectedAnnotation);
-      }
+        created = true;
+      } else
+        if (tool === 'polygon') {
+          this.selectedAnnotation = new PolygonAnnotation(this);
+          // Assign the parent reference
+          this.selectedAnnotation.parent = this;
+          this.annotations.push(this.selectedAnnotation);
+          created = true;
+        }
+      if (created) this.emitUpdate();
     }
     if (this.selectedAnnotation) {
 
@@ -326,19 +456,38 @@ export class ImageAnnotation {
       const res = this.selectedAnnotation.addPoint(point);
       if (res === 'complete') {
         this.selectedAnnotation = undefined as any;
+        this.updateValue++;
         console.log('Annotation complete');
+        this.emitUpdate();
+      } else if (res === 'added') {
+        this.emitUpdate();
       }
     }
     this.redrawAnnotations();
   }
 
-  removeAnnotation(annotation: PolygonAnnotation): void {
+  removeAnnotation(annotation: Annotation): void {
     this.annotations = this.annotations.filter(ann => ann !== annotation);
     this.redrawAnnotations();
+    this.emitUpdate();
+  }
+
+  sortAnnotations(): void {
+    this.annotations.sort((a, b) => {
+      // Sort polygon annotations by area
+      if (a instanceof PolygonAnnotation && b instanceof PolygonAnnotation) {
+        return b.areaPixel - a.areaPixel;
+      }
+      // Sort line annotations by length
+      if (a instanceof LineAnnotation && b instanceof LineAnnotation) {
+        return b.length - a.length;
+      }
+      return 0;
+    });
   }
 
   processKeydown(event: KeyboardEvent): void {
-    // ...existing code...
+
     if (event.key === 'Escape') {
       if (this.selectedAnnotation) {
         this.removeAnnotation(this.selectedAnnotation);
@@ -350,13 +499,16 @@ export class ImageAnnotation {
       if (this.selectedAnnotation) {
         this.selectedAnnotation.hoveredPoint = undefined;
 
-        this.selectedAnnotation.points = this.selectedAnnotation.getCombinedPoints();
+        this.selectedAnnotation.finalizePoints();
         console.log('Annotation complete', this.selectedAnnotation.points.length);
         this.selectedAnnotation = undefined as any;
         this.store.currentTool = null;
 
-        // Sort the annotations by area
-        this.annotations.sort((a, b) => b.areaPixel - a.areaPixel);
+        this.sortAnnotations();
+
+        const anns = this.annotations;
+        this.annotations = anns;
+        this.emitUpdate();
       }
     }
 
@@ -380,12 +532,24 @@ export class ImageAnnotation {
   }
 
   toJSON(): string {
+    // Old variant
+    // return JSON.stringify({
+    //   filePath: this.filePath,
+    //   micrometerPerPixel: this.micrometerPerPixel,
+    //   annotations: this.annotations.map(ann => ({
+    //     points: ann.points, // Points will be used to recalc the area later via loadJSON
+    //     color: ann.color
+    //   }))
+    // });
+
+    // New with distinct polygon and line annotations
     return JSON.stringify({
       filePath: this.filePath,
       micrometerPerPixel: this.micrometerPerPixel,
       annotations: this.annotations.map(ann => ({
         points: ann.points, // Points will be used to recalc the area later via loadJSON
-        color: ann.color
+        color: ann.color,
+        type: ann.type
       }))
     });
   }
@@ -397,8 +561,7 @@ export class ImageAnnotation {
       imageAnn.filePath = data.filePath;
       imageAnn.micrometerPerPixel = data.micrometerPerPixel;
       imageAnn.annotations = (data.annotations ?? []).map((ann: any) => {
-        const polygon = new PolygonAnnotation();
-        polygon.parent = imageAnn;
+        const polygon = (ann.type ?? 'polygon') === 'polygon' ? new PolygonAnnotation(imageAnn) : new LineAnnotation(imageAnn);
         polygon.loadJSON(ann);
         return polygon;
       });
@@ -410,34 +573,34 @@ export class ImageAnnotation {
   }
 
 
-  get biggestAnnotation(): PolygonAnnotation | undefined {
-    return this.annotations.length > 0 ? this.annotations.reduce((largest, ann) =>
+  get biggestPolygonAnnotation(): PolygonAnnotation | undefined {
+    return this.polygonAnnotations.length > 0 ? this.polygonAnnotations.reduce((largest, ann) =>
       ann.areaPixel > largest.areaPixel ? ann : largest
     ) : undefined;
   }
 
-  get smallestAnnotation(): PolygonAnnotation | undefined {
-    return this.annotations.length > 0 ? this.annotations.reduce((smallest, ann) =>
+  get smallestPolygonAnnotation(): PolygonAnnotation | undefined {
+    return this.polygonAnnotations.length > 0 ? this.polygonAnnotations.reduce((smallest, ann) =>
       ann.areaPixel < smallest.areaPixel ? ann : smallest
     ) : undefined;
   }
 
   // Outer circumference
   get outerCircumference(): number {
-    const biggest = this.biggestAnnotation;
+    const biggest = this.biggestPolygonAnnotation;
     return biggest ? biggest.circumferenceBasedOnLength : 0;
   }
 
   get wallAreaPixel(): number {
-    if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+    if (!this.biggestPolygonAnnotation || !this.smallestPolygonAnnotation || this.annotations.length < 2) return 0;
 
-    const outerAreaPixel = this.biggestAnnotation.areaPixel;
-    const innerAreaPixel = this.smallestAnnotation.areaPixel;
+    const outerAreaPixel = this.biggestPolygonAnnotation.areaPixel;
+    const innerAreaPixel = this.smallestPolygonAnnotation.areaPixel;
     return outerAreaPixel - innerAreaPixel
   }
 
   get outerCircleAreaCalculated(): number {
-    if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+    if (!this.biggestPolygonAnnotation || !this.smallestPolygonAnnotation || this.annotations.length < 2) return 0;
 
     // Assumption: The outer wall can be transformed into a circle with the same circumference
     const outerCircumference = this.outerCircumference;
@@ -455,7 +618,7 @@ export class ImageAnnotation {
   }
 
   get averageWallThickness(): number {
-    if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+    if (!this.biggestPolygonAnnotation || !this.smallestPolygonAnnotation || this.annotations.length < 2) return 0;
 
     // Assumption: The outer wall can be transformed into a circle with the same circumference
     const outerCircumference = this.outerCircumference;
@@ -486,7 +649,7 @@ export class ImageAnnotation {
 
   get innerAreaCalculated(): number {
 
-    if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+    if (!this.biggestPolygonAnnotation || !this.smallestPolygonAnnotation || this.annotations.length < 2) return 0;
 
     const outerCircleArea = this.outerCircleAreaCalculated;
     const outerCircleDiameter = this.outerCircleDiameterBasedOnCalculatedArea;
@@ -507,7 +670,7 @@ export class ImageAnnotation {
   }
 
   get innerAreaCalculatedEasy() {
-    if (!this.biggestAnnotation || !this.smallestAnnotation || this.annotations.length < 2) return 0;
+    if (!this.biggestPolygonAnnotation || !this.smallestPolygonAnnotation || this.annotations.length < 2) return 0;
 
     // Assumption: The outer wall can be transformed into a circle with the same circumference
     const outerCircleArea = this.outerCircleAreaCalculated;

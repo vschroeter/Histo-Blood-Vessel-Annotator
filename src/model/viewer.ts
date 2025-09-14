@@ -180,8 +180,10 @@ export class KonvaImageViewer {
     const annData = await window.electronAPI.loadAnnotationsData(annFilePath);
     let imageAnn: ImageAnnotation;
     if (annData) {
+      console.log('Loading annotations from', annFilePath);
       imageAnn = ImageAnnotation.fromJSON(annData);
     } else {
+      console.log('Constructing new ImageAnnotation');
       imageAnn = new ImageAnnotation();
     }
     imageAnn.filePath = imagePath;
@@ -192,6 +194,7 @@ export class KonvaImageViewer {
 
     // TODO: Change this to just a const variable
     this.store.currentImageAnnotation = imageAnn;
+    console.log('Setting currentImageAnnotation', imageAnn, this.store);
 
     imageAnn.redrawAnnotations();
   }
