@@ -71,6 +71,17 @@
       </tbody>
     </table>
     <p v-else>No line annotations yet.</p>
+
+    <div v-if="store.currentImageAnnotation" class="ratio-info">
+      <p>Shortest Line Annotation (µm): {{ store.currentImageAnnotation.shortestLineAnnotationLength.toFixed(1)
+      }}
+      </p>
+      <p>Longest Line Annotation (µm): {{ store.currentImageAnnotation.longestLineAnnotationLength.toFixed(1) }}
+      </p>
+      <p>Wall Thickness Variability: {{ store.currentImageAnnotation.wallThicknessVariability.toFixed(2) }}
+      </p>
+    </div>
+
   </div>
 
 </template>

@@ -774,6 +774,34 @@ export class ImageAnnotation {
   // }
 
 
+  //#region wall thickness variability
+
+  get shortestLineAnnotation(): LineAnnotation | undefined {
+    return this.lineAnnotations.length > 0 ? this.lineAnnotations.reduce((shortest, ann) =>
+      (ann.length > 0 && ann.length < shortest.length) ? ann : shortest
+    ) : undefined;
+  }
+
+  get shortestLineAnnotationLength(): number {
+    return (this.shortestLineAnnotation?.length ?? 0) * this.micrometerPerPixel;
+  }
+
+  get longestLineAnnotation(): LineAnnotation | undefined {
+    return this.lineAnnotations.length > 0 ? this.lineAnnotations.reduce((longest, ann) =>
+      (ann.length > 0 && ann.length > longest.length) ? ann : longest
+    ) : undefined;
+  }
+
+  get longestLineAnnotationLength(): number {
+    return (this.longestLineAnnotation?.length ?? 0) * this.micrometerPerPixel;
+  }
+
+  get wallThicknessVariability(): number {
+    if (!this.shortestLineAnnotation || !this.longestLineAnnotation) return 0;
+    return this.longestLineAnnotationLength / this.shortestLineAnnotationLength;
+  }
+
+
 
 
 
