@@ -117,6 +117,34 @@ ipcMain.handle('check-annotation-exists', async (_event, filePath: string) => {
   }
 });
 
+ipcMain.handle('check-annotation-state', async (_event, filePath: string) => {
+  try {
+    await fs.access(filePath);
+  } catch (_) {
+    return 'missing';
+  }
+
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    const parsed = JSON.parse(content) as { annotations?: Array<{ type?: string }> };
+    const list = Array.isArray(parsed.annotations) ? parsed.annotations : [];
+
+    const polygonCount = list.filter(a => a && a.type === 'polygon').length;
+    const lineCount = list.filter(a => a && a.type === 'line').length;
+
+    if (polygonCount >= 2 && lineCount >= 2) {
+      return 'complete';
+    }
+    if (polygonCount + lineCount >= 1 || list.length > 0) {
+      return 'incomplete';
+    }
+    return 'missing';
+  } catch (error) {
+    console.error('Error evaluating annotation state:', error);
+    return 'missing';
+  }
+});
+
 app.whenReady().then(createWindow).catch(console.error);
 
 app.on('window-all-closed', () => {

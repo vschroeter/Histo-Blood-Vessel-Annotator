@@ -16,9 +16,13 @@ interface ElectronAPI {
   saveAnnotationsData(imagePath: string, data: string): Promise<void>;
   loadAnnotationsData(imagePath: string): Promise<string>;
   checkAnnotationExists(filePath: string): Promise<boolean>;
+  checkAnnotationState(filePath: string): Promise<AnnotationState>;
 }
 
 declare global {
+  // Annotation state returned by check-annotation-state
+  type AnnotationState = 'complete' | 'incomplete' | 'missing';
+
   interface Window {
     electronAPI: ElectronAPI;
   }

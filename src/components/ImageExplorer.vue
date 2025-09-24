@@ -10,8 +10,11 @@
     <div class="list-container">
       <q-list dense bordered class="bg-white">
         <template v-for="item in files" :key="item.name">
-          <q-item clickable @click="selectFile(item.name)" class="q-pa-xs"
-            :class="{ 'green-item': item.hasAnnotation, 'red-item': !item.hasAnnotation }">
+          <q-item clickable @click="selectFile(item.name)" class="q-pa-xs" :class="{
+            'green-item': item.state === 'complete',
+            'orange-item': item.state === 'incomplete',
+            'red-item': item.state === 'missing'
+          }">
             <q-item-section :class="{ 'selected-text': store.currentImagePath === store.folderPath + '/' + item.name }">
               {{ item.name }}
             </q-item-section>
@@ -29,7 +32,7 @@ import { ImageAnnotation } from 'src/model/annotations';
 
 interface FileItem {
   name: string;
-  hasAnnotation: boolean;
+  state: AnnotationState;
 }
 
 const store = useGlobalStore();
@@ -42,8 +45,8 @@ async function loadFiles(): Promise<void> {
       const items: FileItem[] = await Promise.all(
         fileNames.map(async (file) => {
           const annFilePath = store.folderPath + '/annotations/' + file + '_annotations.json';
-          const exists = await window.electronAPI.checkAnnotationExists(annFilePath);
-          return { name: file, hasAnnotation: exists };
+          const state = await window.electronAPI.checkAnnotationState(annFilePath);
+          return { name: file, state };
         })
       );
       files.value = items;
@@ -69,7 +72,7 @@ async function exportCSV(): Promise<void> {
   rows.push(header);
 
   for (const item of files.value) {
-    if (item.hasAnnotation) {
+    if (item.state !== 'missing') {
       const annFilePath = store.folderPath + '/annotations/' + item.name + '_annotations.json';
       try {
         const annData: string = await window.electronAPI.loadAnnotationsData(annFilePath);
@@ -166,6 +169,10 @@ watch(
 /* Highlighting styles */
 .green-item {
   background-color: #d0f0c0 !important;
+}
+
+.orange-item {
+  background-color: #ffe4b5 !important;
 }
 
 .red-item {
