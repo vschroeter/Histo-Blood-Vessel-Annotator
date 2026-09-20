@@ -63,7 +63,7 @@ $$
 A = \frac{1}{2}\left\lvert \sum_{i=1}^{n} \bigl( x_i y_{i+1} - y_i x_{i+1} \bigr) \right\rvert
 $$
 
-The **outer** polygon is the one with larger area \(A_{\mathrm{out}}\); the **inner** polygon has area \(A_{\mathrm{in}}\). The outer circumference is the polygonal perimeter of the outer contour:
+The **outer** polygon is the one with larger area $A_{\mathrm{out}}$; the **inner** polygon has area $A_{\mathrm{in}}$. The outer circumference is the polygonal perimeter of the outer contour:
 
 $$
 C_{\mathrm{out}} = \sum_{i=1}^{n} \sqrt{(x_{i+1}-x_i)^2 + (y_{i+1}-y_i)^2}
@@ -115,7 +115,7 @@ $$
 
 ### Derived diameters
 
-The diameters shown in the side panel follow from the equivalent-circle areas, converted with \(s\):
+The diameters shown in the side panel follow from the equivalent-circle areas, converted with $s$:
 
 $$
 D_{\mathrm{out}} = 2 R_{\mathrm{out}} \, s, \qquad
