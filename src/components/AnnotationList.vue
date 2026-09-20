@@ -1,19 +1,14 @@
 <template>
   <div class="q-pa-md">
-    <!-- Tool Selection Toolbar -->
     <div class="tool-selection">
-      <!-- <q-btn icon="timeline" flat round tooltip="Line Annotation Tool" @click="selectTool('line')"
-        :class="{ active: store.currentTool === 'line' }" /> -->
-      <q-btn icon="polymer" flat round tooltip="Polygon Annotation Tool - press Enter to finish"
+      <q-btn icon="polymer" flat round tooltip="Polygon annotation — press Enter to finish"
         @click="selectTool('polygon')" :class="{ active: store.currentTool === 'polygon' }" />
-      <q-btn icon="arrow_outward" flat round tooltip="Line Annotation Tool - select two points"
+      <q-btn icon="arrow_outward" flat round tooltip="Line annotation — select two points"
         @click="selectTool('line')" :class="{ active: store.currentTool === 'line' }" />
     </div>
-    <!-- Updated input for micrometerPerPixel -->
     <q-input v-if="store.currentImageAnnotation" v-model.number="store.currentImageAnnotation.micrometerPerPixel"
-      type="number" label="Micrometer Per Pixel" dense />
-    <!-- Annotation list displayed in a table -->
-    <h4>Polygon Annotations</h4>
+      type="number" label="Micrometre per pixel" dense />
+    <h4>Polygon annotations</h4>
     <table v-if="polygonAnnotations.length" class="annotation-table">
       <thead>
         <tr>
@@ -40,18 +35,13 @@
     </table>
     <p v-else>No polygon annotations yet.</p>
     <div v-if="store.currentImageAnnotation" class="ratio-info">
-      <!-- <p>Outer Area (calculated): {{ store.currentImageAnnotation.outerCircleAreaCalculatedInMicroSquared.toFixed(3) }}</p>
-      <p>Inner Area (calculated): {{ store.currentImageAnnotation.innerAreaCalculatedInMicroSquared.toFixed(3) }}</p> -->
-
-      <p>Calculated Outer Diameter (µm): {{ store.currentImageAnnotation.outerCalculatedDiameterInMicro.toFixed(3) }}
-      </p>
-      <p>Calculated Inner Diameter (µm): {{ store.currentImageAnnotation.innerCalculatedDiameterInMicro.toFixed(3) }}
-      </p>
-      <p>Average Wall Thickness (µm): {{ store.currentImageAnnotation.averageWallThicknessInMicro.toFixed(3) }}</p>
-      <p>Media Lumen Ratio: {{ store.currentImageAnnotation.mediaLumenRatio.toFixed(3) }}</p>
+      <p>Calculated outer diameter (µm): {{ store.currentImageAnnotation.outerCalculatedDiameterInMicro.toFixed(3) }}</p>
+      <p>Calculated inner diameter (µm): {{ store.currentImageAnnotation.innerCalculatedDiameterInMicro.toFixed(3) }}</p>
+      <p>Average wall thickness (µm): {{ store.currentImageAnnotation.averageWallThicknessInMicro.toFixed(3) }}</p>
+      <p>Media–lumen ratio: {{ store.currentImageAnnotation.mediaLumenRatio.toFixed(3) }}</p>
     </div>
 
-    <h4>Line Annotations</h4>
+    <h4>Line annotations</h4>
     <table v-if="lineAnnotations.length" class="annotation-table">
       <thead>
         <tr>
@@ -73,21 +63,15 @@
     <p v-else>No line annotations yet.</p>
 
     <div v-if="store.currentImageAnnotation" class="ratio-info">
-      <p>Shortest Line Annotation (µm): {{ store.currentImageAnnotation.shortestLineAnnotationLength.toFixed(1)
-      }}
-      </p>
-      <p>Longest Line Annotation (µm): {{ store.currentImageAnnotation.longestLineAnnotationLength.toFixed(1) }}
-      </p>
-      <p>Wall Thickness Variability: {{ store.currentImageAnnotation.wallThicknessVariability.toFixed(2) }}
-      </p>
+      <p>Shortest line (µm): {{ store.currentImageAnnotation.shortestLineAnnotationLength.toFixed(1) }}</p>
+      <p>Longest line (µm): {{ store.currentImageAnnotation.longestLineAnnotationLength.toFixed(1) }}</p>
+      <p>Wall-thickness variability: {{ store.currentImageAnnotation.wallThicknessVariability.toFixed(2) }}</p>
     </div>
-
   </div>
-
 </template>
 
 <script setup lang="ts">
-import { type LineAnnotation, type PolygonAnnotation } from 'src/model/annotations';
+import { DEFAULT_MICROMETER_PER_PIXEL, type Annotation, type LineAnnotation, type PolygonAnnotation } from 'src/model/annotations';
 import { useGlobalStore } from 'src/stores/global-store';
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 
@@ -98,31 +82,18 @@ function selectTool(tool: 'line' | 'polygon') {
 }
 
 watch(() => store.currentTool, (tool) => {
-  if (tool !== "polygon" && tool !== "line") {
-    store.currentTool = "polygon"
+  if (tool !== 'polygon' && tool !== 'line') {
+    store.currentTool = 'polygon';
   }
 });
 
-
-function deleteAnnotation(ann: any) {
+function deleteAnnotation(ann: Annotation) {
   store.currentImageAnnotation?.removeAnnotation(ann);
   updateAnnotations();
 }
 
-
 const polygonAnnotations = ref<PolygonAnnotation[]>([]);
 const lineAnnotations = ref<LineAnnotation[]>([]);
-
-// const annotations = computed(() => store.currentImageAnnotation?.annotations ?? []);
-
-// const polygonAnnotations = computed(() => annotations.value.filter(ann => ann instanceof PolygonAnnotation));
-// const lineAnnotations = computed(() => annotations.value.filter(ann => ann instanceof LineAnnotation));
-
-// watch(() => store.currentImageAnnotation?.updateValue, () => {
-//   console.log('annotations changed', store.currentImageAnnotation?.annotations);
-//   polygonAnnotations.value = store.currentImageAnnotation?.polygonAnnotations ?? [];
-//   lineAnnotations.value = store.currentImageAnnotation?.lineAnnotations ?? [];
-// });
 
 function updateAnnotations() {
   polygonAnnotations.value = store.currentImageAnnotation?.polygonAnnotations ?? [];
@@ -130,21 +101,7 @@ function updateAnnotations() {
 }
 
 onMounted(() => {
-
-
   let stopListening: (() => void) | null = null;
-
-  const attachListener = () => {
-    stopListener();
-    const imgAnn = store.currentImageAnnotation;
-    if (imgAnn) {
-      stopListening = imgAnn.onUpdate(() => {
-        updateAnnotations();
-      });
-      // initial fill
-      updateAnnotations();
-    }
-  };
 
   const stopListener = () => {
     if (stopListening) {
@@ -153,8 +110,18 @@ onMounted(() => {
     }
   };
 
+  const attachListener = () => {
+    stopListener();
+    const imgAnn = store.currentImageAnnotation;
+    if (imgAnn) {
+      stopListening = imgAnn.onUpdate(() => {
+        updateAnnotations();
+      });
+      updateAnnotations();
+    }
+  };
+
   watch(() => store.currentImageAnnotation, () => {
-    console.log('currentImageAnnotation changed', store.currentImageAnnotation);
     attachListener();
   }, { immediate: true });
 
@@ -163,12 +130,7 @@ onMounted(() => {
   });
 });
 
-
-// const polygonAnnotations = computed(() => store.currentImageAnnotation?.polygonAnnotations ?? []);
-// const lineAnnotations = computed(() => store.currentImageAnnotation?.lineAnnotations ?? []);
-
-// Get micrometer per pixel from the current image annotation or default to 1
-const mpp = computed(() => store.currentImageAnnotation?.micrometerPerPixel ?? 1);
+const mpp = computed(() => store.currentImageAnnotation?.micrometerPerPixel ?? DEFAULT_MICROMETER_PER_PIXEL);
 </script>
 
 <style scoped>
@@ -193,14 +155,6 @@ const mpp = computed(() => store.currentImageAnnotation?.micrometerPerPixel ?? 1
   border: 1px solid #ccc;
   padding: 6px 8px;
   text-align: center;
-}
-
-.color-box {
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-  border: 1px solid #000;
-  display: inline-block;
 }
 
 .ratio-info {

@@ -166,10 +166,31 @@ This starts the Electron app with hot reload. Native packages (`electron`, `shar
 ```bash
 pnpm lint
 pnpm format
+```
+
+## Building a desktop executable
+
+Build on the operating system you want to ship. Electron packaging is not reliably cross-compiled (a Windows `.exe` should be produced on Windows).
+
+```bash
+pnpm install
 pnpm build
 ```
 
-`pnpm build` packages a desktop application with electron-builder.
+This runs Quasar in Electron mode and packages the app with [electron-builder](https://www.electron.build/). Installers and portable binaries land in `dist/electron/Packaged/`. An unpacked copy for inspection is written to `dist/electron/Unpacked/`.
+
+On **Windows** the build produces two x64 artefacts:
+
+| File | What it is |
+| --- | --- |
+| `Image Annotator-Setup-0.0.1.exe` | NSIS installer (user can choose the install directory) |
+| `Image Annotator-Portable-0.0.1.exe` | Single-file portable app, no installation |
+
+On **macOS** the build produces a `.dmg` (x64 and Apple Silicon). On **Linux** it produces an `.AppImage`.
+
+Sharp (TIFF decoding) is unpacked from the asar archive so the packaged app can load `.tif` / `.tiff` files the same way as in development.
+
+The version number in the file name comes from `package.json`. Bump `version` there before a release if you need a new filename.
 
 ## Architecture
 

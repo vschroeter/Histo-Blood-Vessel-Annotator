@@ -13,20 +13,16 @@ const currentDir = fileURLToPath(new URL('.', import.meta.url));
 let mainWindow: BrowserWindow | undefined;
 
 function createWindow() {
-  /**
-   * Initial window options
-   */
   mainWindow = new BrowserWindow({
-    icon: path.resolve(currentDir, 'icons/icon.png'), // tray icon
+    icon: path.resolve(currentDir, 'icons/icon.png'),
     width: 1000,
     height: 600,
     useContentSize: true,
     webPreferences: {
       contextIsolation: true,
-      // More info: https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/electron-preload-script
       preload: path.resolve(
         currentDir,
-        path.join(process.env.QUASAR_ELECTRON_PRELOAD_FOLDER ?? "", 'electron-preload' + process.env.QUASAR_ELECTRON_PRELOAD_EXTENSION)
+        path.join(process.env.QUASAR_ELECTRON_PRELOAD_FOLDER ?? '', 'electron-preload' + process.env.QUASAR_ELECTRON_PRELOAD_EXTENSION)
       ),
     },
   });
@@ -55,7 +51,7 @@ function createWindow() {
 ipcMain.handle('get-tiff-files', async (_event, folder: string) => {
   try {
     const allFiles = await fs.readdir(folder);
-    return allFiles.filter(file => file.toLowerCase().endsWith('.tif'));
+    return allFiles.filter((file) => /\.tiff?$/i.test(file));
   } catch (error) {
     console.error('Error reading folder:', error);
     return [];

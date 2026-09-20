@@ -12,17 +12,13 @@
 
     <q-drawer v-model="leftDrawerOpen" show-if-above behavior="desktop" bordered :width="leftDrawerWidth" side="left">
       <ImageExplorer />
-      <div v-touch-pan.preserveCursor.prevent.mouse.horizontal="resizeLeftDrawer" class="q-drawer__resizerl"></div>
+      <div v-touch-pan.preserveCursor.prevent.mouse.horizontal="resizeLeftDrawer" class="drawer-resizer-left"></div>
     </q-drawer>
 
-
-    <!-- Drawer for the right side -->
     <q-drawer show-if-above v-model="rightDrawerOpen" side="right" behavior="desktop" bordered
       :width="rightDrawerWidth">
       <AnnotationList />
-
-      <div v-touch-pan.preserveCursor.prevent.mouse.horizontal="resizeRightDrawer" class="q-drawer__resizerr"></div>
-
+      <div v-touch-pan.preserveCursor.prevent.mouse.horizontal="resizeRightDrawer" class="drawer-resizer-right"></div>
     </q-drawer>
 
 
@@ -67,7 +63,7 @@ function resizeLeftDrawer(ev: any) {
 </script>
 
 <style>
-.q-drawer__resizerl {
+.drawer-resizer-left {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -77,7 +73,7 @@ function resizeLeftDrawer(ev: any) {
   cursor: ew-resize;
 }
 
-.q-drawer__resizerr {
+.drawer-resizer-right {
   position: absolute;
   top: 0;
   bottom: 0;

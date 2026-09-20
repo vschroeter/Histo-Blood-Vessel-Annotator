@@ -1,5 +1,3 @@
-
-
 declare namespace NodeJS {
   interface ProcessEnv {
     QUASAR_PUBLIC_FOLDER: string;
@@ -18,7 +16,6 @@ interface ElectronAPI {
 }
 
 declare global {
-  // Annotation state returned by check-annotation-state
   type AnnotationState = 'complete' | 'incomplete' | 'missing';
 
   interface Window {
@@ -26,4 +23,4 @@ declare global {
   }
 }
 
-export { };
+export {};
