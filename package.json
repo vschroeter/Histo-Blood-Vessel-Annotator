@@ -1,9 +1,14 @@
 {
   "name": "image-annotator",
   "version": "0.0.1",
-  "description": "Image annotations",
+  "description": "Morphometric annotation of histological vessel cross-sections",
   "productName": "Image Annotator",
-  "author": "Valentin Schroeter <valentin.schroeter@student.hpi.uni-potsdam.de>",
+  "author": "Valentin Schröter <valentin.schroeter@student.hpi.uni-potsdam.de>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vschroeter/image-annotator.git"
+  },
+  "license": "MIT",
   "type": "module",
   "private": true,
   "scripts": {
@@ -23,12 +28,10 @@
     "pinia": "^2.3.1",
     "quasar": "^2.18.2",
     "sharp": "^0.33.5",
-    "tiff-to-png": "^2.0.2",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
-    "@electron/packager": "^18.3.6",
     "@eslint/js": "^9.32.0",
     "@quasar/app-vite": "^2.3.0",
     "@types/node": "^20.19.9",
@@ -46,9 +49,8 @@
     "vue-tsc": "^2.2.12"
   },
   "engines": {
-    "node": "^28 || ^26 || ^24 || ^22 || ^20 || ^18",
-    "npm": ">= 6.13.4",
-    "yarn": ">= 1.21.1"
+    "node": "^28 || ^26 || ^24 || ^22 || ^20",
+    "pnpm": ">=10"
   },
   "optionalDependencies": {
     "@img/sharp-win32-x64": "^0.33.5"

@@ -12,10 +12,5 @@
     "typescript",
     "vue"
   ],
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "workbench.colorCustomizations": {
-    "activityBar.background": "#2C1681",
-    "titleBar.activeBackground": "#3E1EB4",
-    "titleBar.activeForeground": "#FAF9FE"
-  }
+  "typescript.tsdk": "node_modules/typescript/lib"
 }

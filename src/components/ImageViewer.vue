@@ -11,14 +11,12 @@
     <q-inner-loading :showing="loading">
       <q-spinner v-if="loading" size="250px" color="primary" />
     </q-inner-loading>
-  </q-page>>
+  </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue';
-import type Konva from 'konva';
+import { ref, watch, onMounted } from 'vue';
 import { useGlobalStore } from 'src/stores/global-store';
-import { useThrottleFn } from '@vueuse/core';
 import type { ImageAnnotation } from 'src/model/annotations';
 import { KonvaImageViewer } from 'src/model/viewer';
 

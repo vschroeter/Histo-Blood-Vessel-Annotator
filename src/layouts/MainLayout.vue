@@ -27,18 +27,14 @@
 
 
     <q-page-container>
-
-      <ImageViewer />
-
+      <router-view />
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import { useStorage } from '@vueuse/core';
 import ImageExplorer from 'src/components/ImageExplorer.vue';
-import ImageViewer from 'src/components/ImageViewer.vue';
 import AnnotationList from 'src/components/AnnotationList.vue';
 import { useGlobalStore } from 'src/stores/global-store';
 

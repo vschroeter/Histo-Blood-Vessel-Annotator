@@ -11,11 +11,9 @@ declare namespace NodeJS {
 
 interface ElectronAPI {
   getTiffFiles(folder: string): Promise<string[]>;
-  getTiffData(imagePath: string): Promise<string | null>;
   getPngData(imagePath: string): Promise<string | null>;
   saveAnnotationsData(imagePath: string, data: string): Promise<void>;
   loadAnnotationsData(imagePath: string): Promise<string>;
-  checkAnnotationExists(filePath: string): Promise<boolean>;
   checkAnnotationState(filePath: string): Promise<AnnotationState>;
 }
 

@@ -62,16 +62,6 @@ ipcMain.handle('get-tiff-files', async (_event, folder: string) => {
   }
 });
 
-ipcMain.handle('get-tiff-data', async (_event, imagePath: string) => {
-  try {
-    const data = await fs.readFile(imagePath);
-    return data.toString('base64');
-  } catch (error) {
-    console.error('Error reading image file:', error);
-    return null;
-  }
-});
-
 ipcMain.handle('get-png-data', async (_event: Electron.IpcMainInvokeEvent, imagePath: string): Promise<string | null> => {
   try {
     const data = await fs.readFile(imagePath);
@@ -105,15 +95,6 @@ ipcMain.handle('get-annotations-data', async (_event, filePath: string) => {
   } catch (error) {
     console.error('Error reading annotations file:', error);
     return null;
-  }
-});
-
-ipcMain.handle('check-annotation-exists', async (_event, filePath: string) => {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch (_) {
-    return false;
   }
 });
 
