@@ -246,6 +246,7 @@ export class PolygonAnnotation extends Annotation {
 
   override finalizePoints(): void {
     this.points = this.getCombinedPoints();
+    this.calculateArea();
   }
 }
 
