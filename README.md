@@ -53,73 +53,89 @@ A line is created with two left clicks (start and end).
 
 ## Calculations
 
-Let $s$ be the calibration in µm/pixel (`micrometerPerPixel`). Polygon vertices $(x_i, y_i)$ for $i = 1,\ldots,n$ are closed with $(x_{n+1}, y_{n+1}) = (x_1, y_1)$.
+Morphometric parameters are derived from the manually traced polygons and thickness lines. Let $s$ be the spatial calibration in µm/pixel (`micrometerPerPixel`), applied per image. Polygon vertices $(x_i, y_i)$ for $i = 1,\ldots,n$ are treated as a closed contour with $(x_{n+1}, y_{n+1}) = (x_1, y_1)$.
 
-### Polygon area and outer circumference
-
-Area is the shoelace formula:
+The **outer vessel** polygon is the contour with larger area; the **inner lumen** polygon is the smaller. Their pixel areas come from the shoelace formula:
 
 $$
 A = \frac{1}{2}\left\lvert \sum_{i=1}^{n} \bigl( x_i y_{i+1} - y_i x_{i+1} \bigr) \right\rvert
 $$
 
-The **outer** polygon is the one with larger area $A_{\mathrm{out}}$; the **inner** polygon has area $A_{\mathrm{in}}$. The outer circumference is the polygonal perimeter of the outer contour:
+Write $A_{\mathrm{vessel}}$ and $A_{\mathrm{lumen}}$ for those areas. The outer vessel **perimeter** $P_{\mathrm{vessel}}$ is the sum of edge lengths along the outer contour:
 
 $$
-C_{\mathrm{out}} = \sum_{i=1}^{n} \sqrt{(x_{i+1}-x_i)^2 + (y_{i+1}-y_i)^2}
+P_{\mathrm{vessel}} = \sum_{i=1}^{n} \sqrt{(x_{i+1}-x_i)^2 + (y_{i+1}-y_i)^2}
 $$
 
-The measured media (wall) area in pixels is
+The cross-sectional **wall area** (unchanged by the circularization below) is
 
 $$
-A_{\mathrm{wall}} = A_{\mathrm{out}} - A_{\mathrm{in}}
+A_{\mathrm{wall}} = A_{\mathrm{vessel}} - A_{\mathrm{lumen}}.
 $$
 
-### Idealized circular vessel
+### Area-based wall-to-lumen ratio (annotated cross-section)
 
-Folded or collapsed vessels are mapped to an equivalent circle that **preserves the outer circumference** and the **wall area** (the wall thickness is treated as uniform after this unfolding):
-
-$$
-R_{\mathrm{out}} = \frac{C_{\mathrm{out}}}{2\pi}, \qquad
-A_{\mathrm{out}}^{\circ} = \pi R_{\mathrm{out}}^{2}
-$$
+From the traced contours alone, the area-based wall-to-lumen ratio is
 
 $$
-A_{\mathrm{in}}^{\circ} = A_{\mathrm{out}}^{\circ} - A_{\mathrm{wall}}, \qquad
-R_{\mathrm{in}} = \sqrt{\frac{A_{\mathrm{in}}^{\circ}}{\pi}}
+(W/L)_{\mathrm{area}} = \frac{A_{\mathrm{vessel}} - A_{\mathrm{lumen}}}{A_{\mathrm{lumen}}} = \frac{A_{\mathrm{wall}}}{A_{\mathrm{lumen}}}.
 $$
 
-### Average wall thickness
+This quantity is defined for any cross-sectional shape. Vessel deformation or collapse during tissue preparation can strongly change the measured lumen area and therefore this ratio. The application’s primary wall-to-lumen endpoint uses the circularized reconstruction in the next section instead.
+
+### Circularized vessel cross-section
+
+To account for non-circular or collapsed profiles, an **equivalent circular** cross-section is built from the annotated outer vessel perimeter. The outer perimeter is assumed to approximate the undeformed vessel circumference (the traced contour is treated as sufficiently smooth aside from minor local irregularities). **Perimeter is conserved:**
 
 $$
-t = R_{\mathrm{out}} - R_{\mathrm{in}}
+D^{\circ}_{\mathrm{vessel}} = \frac{P_{\mathrm{vessel}}}{\pi}, \qquad
+A^{\circ}_{\mathrm{vessel}} = \pi \left(\frac{D^{\circ}_{\mathrm{vessel}}}{2}\right)^{2}.
 $$
 
-Reported in micrometres as $t_{\mu\mathrm{m}} = t \cdot s$.
-
-### Media–lumen ratio
-
-The media–lumen ratio is the equivalent-circle wall area divided by the equivalent-circle lumen area:
+**Wall cross-sectional area is conserved** between the annotated profile and the reconstruction, so $A_{\mathrm{wall}}$ from the polygons is used directly. The circularized lumen area and diameter are
 
 $$
-\mathrm{MLR} = \frac{A_{\mathrm{out}}^{\circ} - A_{\mathrm{in}}^{\circ}}{A_{\mathrm{in}}^{\circ}} = \frac{A_{\mathrm{wall}}}{A_{\mathrm{in}}^{\circ}}
+A^{\circ}_{\mathrm{lumen}} = A^{\circ}_{\mathrm{vessel}} - A_{\mathrm{wall}}, \qquad
+D^{\circ}_{\mathrm{lumen}} = 2 \sqrt{\frac{A^{\circ}_{\mathrm{lumen}}}{\pi}}.
 $$
 
-### Wall-thickness variability
+(Internally, radii $R^{\circ}_{\mathrm{vessel}} = P_{\mathrm{vessel}}/(2\pi)$ and $R^{\circ}_{\mathrm{lumen}} = \sqrt{A^{\circ}_{\mathrm{lumen}}/\pi}$ are equivalent.)
 
-A line from $(x_1, y_1)$ to $(x_2, y_2)$ has Euclidean length $L = \sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}$. Among all line annotations, let $L_{\max}$ and $L_{\min}$ be the longest and shortest (in micrometres, $L \cdot s$). Then
+### Circularized wall-to-lumen ratio (reported)
 
-$$
-\mathrm{WTV} = \frac{L_{\max}}{L_{\min}}
-$$
-
-### Derived diameters
-
-The diameters shown in the side panel follow from the equivalent-circle areas, converted with $s$:
+The **media–lumen ratio** shown in the UI and CSV is the circularized area-based wall-to-lumen ratio:
 
 $$
-D_{\mathrm{out}} = 2 R_{\mathrm{out}} \, s, \qquad
-D_{\mathrm{in}} = 2 R_{\mathrm{in}} \, s
+(W/L)^{\circ}_{\mathrm{area}} = \frac{A^{\circ}_{\mathrm{vessel}} - A^{\circ}_{\mathrm{lumen}}}{A^{\circ}_{\mathrm{lumen}}} = \frac{A_{\mathrm{wall}}}{A^{\circ}_{\mathrm{lumen}}}.
+$$
+
+### Circularized mean wall thickness (reported)
+
+Mean wall thickness of the reconstructed circular profile is
+
+$$
+\overline{t}^{\circ}_{\mathrm{wall}} = \frac{D^{\circ}_{\mathrm{vessel}} - D^{\circ}_{\mathrm{lumen}}}{2}
+$$
+
+in pixels; the value in micrometres is $\overline{t}^{\circ}_{\mathrm{wall}} \cdot s$ (`averageWallThicknessInMicro`).
+
+### Wall-thickness variability ratio (reported)
+
+Thickness lines from $(x_1, y_1)$ to $(x_2, y_2)$ have length $L = \sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}$. Let $L_{\max}$ and $L_{\min}$ be the longest and shortest line lengths among all intercepts (in µm, $L \cdot s$). The **wall-thickness variability ratio** is
+
+$$
+R_{\mathrm{WT}} = \frac{L_{\max}}{L_{\min}}
+$$
+
+(`wallThicknessVariability`).
+
+### Derived diameters (side panel)
+
+Reconstructed outer and inner diameters in micrometres:
+
+$$
+D^{\circ}_{\mathrm{vessel},\,\mu\mathrm{m}} = D^{\circ}_{\mathrm{vessel}} \cdot s, \qquad
+D^{\circ}_{\mathrm{lumen},\,\mu\mathrm{m}} = D^{\circ}_{\mathrm{lumen}} \cdot s.
 $$
 
 ## Typical workflow
