@@ -99,7 +99,7 @@ A^{\circ}_{\mathrm{lumen}} = A^{\circ}_{\mathrm{vessel}} - A_{\mathrm{wall}}, \q
 D^{\circ}_{\mathrm{lumen}} = 2 \sqrt{\frac{A^{\circ}_{\mathrm{lumen}}}{\pi}}.
 $$
 
-(Internally, radii $R^{\circ}_{\mathrm{vessel}} = P_{\mathrm{vessel}}/(2\pi)$ and $R^{\circ}_{\mathrm{lumen}} = \sqrt{A^{\circ}_{\mathrm{lumen}}/\pi}$ are equivalent.)
+Internally, radii $R^{\circ}_{\mathrm{vessel}} = P_{\mathrm{vessel}}/(2\pi)$ and $R^{\circ}_{\mathrm{lumen}} = \sqrt{A^{\circ}_{\mathrm{lumen}}/\pi}$ are equivalent.
 
 ### Circularized wall-to-lumen ratio (reported)
 
@@ -117,17 +117,16 @@ $$
 \overline{t}^{\circ}_{\mathrm{wall}} = \frac{D^{\circ}_{\mathrm{vessel}} - D^{\circ}_{\mathrm{lumen}}}{2}
 $$
 
-in pixels; the value in micrometres is $\overline{t}^{\circ}_{\mathrm{wall}} \cdot s$ (`averageWallThicknessInMicro`).
+in pixels; the value in micrometres is $\overline{t}^{\circ}_{\mathrm{wall}} \cdot s$.
 
 ### Wall-thickness variability ratio (reported)
 
 Thickness lines from $(x_1, y_1)$ to $(x_2, y_2)$ have length $L = \sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}$. Let $L_{\max}$ and $L_{\min}$ be the longest and shortest line lengths among all intercepts (in µm, $L \cdot s$). The **wall-thickness variability ratio** is
 
 $$
-R_{\mathrm{WT}} = \frac{L_{\max}}{L_{\min}}
+R_{\mathrm{WT}} = \frac{L_{\max}}{L_{\min}}.
 $$
 
-(`wallThicknessVariability`).
 
 ### Derived diameters (side panel)
 
