@@ -99,7 +99,7 @@ A^{\circ}_{\mathrm{lumen}} = A^{\circ}_{\mathrm{vessel}} - A_{\mathrm{wall}}, \q
 D^{\circ}_{\mathrm{lumen}} = 2 \sqrt{\frac{A^{\circ}_{\mathrm{lumen}}}{\pi}}.
 $$
 
-Internally, radii $R^{\circ}_{\mathrm{vessel}} = P_{\mathrm{vessel}}/(2\pi)$ and $R^{\circ}_{\mathrm{lumen}} = \sqrt{A^{\circ}_{\mathrm{lumen}}/\pi}$ are equivalent.
+Internally, radii $`R^{\circ}_{\mathrm{vessel}} = P_{\mathrm{vessel}}/(2\pi)`$ and $`R^{\circ}_{\mathrm{lumen}} = \sqrt{A^{\circ}_{\mathrm{lumen}}/\pi}`$ are equivalent.
 
 ### Circularized wall-to-lumen ratio (reported)
 
